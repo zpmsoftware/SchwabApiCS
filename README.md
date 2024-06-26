@@ -3,7 +3,7 @@ SchwabApiCS is a C# library(dll) implementing Schwab's trader API (streaming par
 The library includes launching the Schwab reauthorization page only when needed and captures the tokens automatically.
 Start by reading SchwabApiTest\ReadMe.txt.
 
-How To Videos:
+How To Videos: 
 Getting Started - what to to when starting the first time: 
     https://u.pcloud.link/publink/show?code=XZrmLs0ZmbxI8ETu4b8Jyfor6VxyYkyEN4s7
 Explains exception handling in SchwabApiCS: 
