@@ -1,0 +1,9 @@
+{
+  "AccessToken": "",
+  "RefreshToken": "",
+  "AccessTokenExpires": "2024-06-13T16:55:31.5852329-05:00",
+  "RefreshTokenExpires": "2024-06-20T00:00:00-05:00",
+  "AppKey": "your appkey",
+  "Secret": "your secret",
+  "Redirect_uri": "https://127.0.0.1"
+}
