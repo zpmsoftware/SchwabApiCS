@@ -1,6 +1,6 @@
 ﻿// <copyright file="Streamer.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
 using System;
@@ -9,13 +9,7 @@ using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
 using static SchwabApiCS.Streamer.StreamerRequests;
 using System.Security.Authentication;
-using System.Windows.Interop;
-using System.Windows.Documents;
-using static SchwabApiCS.Streamer.ResponseMessage;
-using static SchwabApiCS.Streamer.LevelOneEquities;
-using System.Net.WebSockets;
 using static SchwabApiCS.Streamer;
-using System.Diagnostics.SymbolStore;
 
 
 // https://json2csharp.com/
@@ -23,21 +17,30 @@ namespace SchwabApiCS
 {
     public partial class Streamer
     {
+        public bool IsLoggedIn {  get { return isLoggedIn; } }
+        public LevelOneEquitiesClass LevelOneEquities;
+        public LevelOneOptionsClass LevelOneOptions;
+        public AccountActivityClass AccountActivities;
+
+        private LevelOneFuturesClass LevelOneFutures; // not ready yet
+
+        private List<ServiceClass> ServiceList = new List<ServiceClass>();
         private UserPreferences.StreamerInfo streamerInfo;
         private SchwabApi schwabApi;
         private WebSocket4Net.WebSocket websocket;
         private long requestid = 0;
-        private bool isLoggedIn = false;
+        internal bool isLoggedIn = false;
         private List<string> requestQueue = new List<string>();
-
-        private List<LevelOneEquities> levelOneEquities = new List<LevelOneEquities>();
-        private EquitiesCallback equitiesCallback = null;
-        private List<string> activeEquitySymbols = new List<string>(); // only accept streamed data from this list
-
-        public bool IsLoggedIn {  get { return isLoggedIn; } }
 
         public Streamer(SchwabApi schwabApi)
         {
+            ServiceList.Add(LevelOneEquities = new LevelOneEquitiesClass(this));
+            ServiceList.Add(LevelOneOptions = new LevelOneOptionsClass(this));
+            ServiceList.Add(LevelOneFutures = new LevelOneFuturesClass(this));
+            ServiceList.Add(AccountActivities = new AccountActivityClass(this));
+
+            ServiceList.Add(new AdminClass(this));
+
             this.schwabApi = schwabApi;
             this.streamerInfo = schwabApi.userPreferences.streamerInfo[0]; ;
             this.websocket = new WebSocket4Net.WebSocket(streamerInfo.streamerSocketUrl, sslProtocols: SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls | SslProtocols.None);
@@ -67,27 +70,11 @@ namespace SchwabApiCS
                         var notifyMessage = JsonConvert.DeserializeObject<NotifyMessage>(messageEvent.Message);
                         foreach( var n in notifyMessage.notify)
                         {
-                            if (n.content.code != 0)
-                            {
-                                var xx = 1;
-                            }
-                            switch (n.service)
-                            {
-                                case "ADMIN":
-                                    // {"notify":[{"service":"ADMIN","timestamp":1718801330575,"content":{"code":30,"msg":"Stop streaming due to empty subscription"}}]}
-                                    switch (n.content.code) {
-                                        case 30: // Stop streaming due to empty subscription
-                                            isLoggedIn = false; // start queueing any requests, sending a new request will reopen and login automatically.
-                                            break;
+                            var service = ServiceList.Where(s => s.ServiceName == n.service).SingleOrDefault();
+                            if (service == null)
+                                throw new Exception("Streamer response service " + n.service + " not implemented");
 
-                                        default:
-                                            break;
-                                    }
-                                    break;
-
-                                default:
-                                    throw new Exception("Streamer notify service " + n.service + " not implemented");
-                            }
+                            service.Notify(n);
                         }
                         return;
                     }
@@ -95,49 +82,14 @@ namespace SchwabApiCS
                     if (messageEvent.Message.StartsWith("{\"response\":"))
                     {
                         var responses = JsonConvert.DeserializeObject<ResponseMessage>(messageEvent.Message);
-                        foreach(var r in  responses.response)
+
+                        foreach (var r in  responses.response)
                         {
-                            switch (r.service)
-                            {
-                                case "ADMIN":
-                                    // {"response":[{"service":"ADMIN","command":"LOGIN","requestid":"3","SchwabClientCorrelId":"e761bc20-cc7c-d3f4-3318-55845db8e7e5",
-                                    //   "timestamp":1718745613708,"content":{"code":0,"msg":"server=s0300dc7-2;status=NP"}}]}
-                                    ProcesResponseADMIN(r);
-                                    break;
+                            var service = ServiceList.Where(s => s.ServiceName == r.service).SingleOrDefault();
+                            if (service == null)
+                                throw new Exception("Streamer response service " + r.service + " not implemented");
 
-                                case "LEVELONE_EQUITIES":
-                                    ProcesResponseLEVELONE_EQUITIES(r);
-                                    break;
-
-                                /*
-                                case "LEVELONE_OPTIONS": // Change, Level 1 Options Change
-                                    break;
-                                case "LEVELONE_FUTURES": // Change, Level 1 Futures Change
-                                    break;
-                                case "LEVELONE_FUTURES_OPTIONS": // Change, Level 1 Futures Options Change
-                                    break;
-                                case "LEVELONE_FOREX": // Change, Level 1 Forex Change
-                                    break;
-                                case "NYSE_BOOK": // Whole, Level Two book for Equities Whole
-                                    break;
-                                case "NASDAQ_BOOK": // Whole, Level Two book for Equities Whole
-                                    break;
-                                case "OPTIONS_BOOK": // Whole, Level Two book for Options Whole
-                                    break;
-                                case "CHART_EQUITY": // All Sequence, Chart candle for Equities All Sequence
-                                    break;
-                                case "CHART_FUTURES": // All Sequence, Chart candle for Futures All Sequence
-                                    break;
-                                case "SCREENER_EQUITY": // Whole, Advances and Decliners for Equities Whole
-                                    break;
-                                case "SCREENER_OPTION": // Whole, Advances and Decliners for Options Whole
-                                    break;
-                                case "ACCT_ACTIVITY": // All Sequence, Get account activity information such as order fills, etc
-                                    break;
-                                */
-                                default:
-                                    throw new Exception("Streamer response service " + r.service + " not implemented");
-                            }
+                            service.ProcessResponse(r);
                         }
                         return;
                     }
@@ -145,28 +97,15 @@ namespace SchwabApiCS
                     {
                         var dataMsg = JsonConvert.DeserializeObject<DataMessage>(messageEvent.Message);
                         var msg = JsonConvert.DeserializeObject<dynamic>(messageEvent.Message);
-                        var nn = ((Newtonsoft.Json.Linq.JProperty)((Newtonsoft.Json.Linq.JObject)msg).First).Name;
 
-                        foreach (var d in dataMsg.data)
-                        { 
-                            switch (d.service)
-                            {
-                                case "LEVELONE_EQUITIES":
-                                    // {"data":
-                                    //    [
-                                    //      {"service":"LEVELONE_EQUITIES", "timestamp":1718745703677,"command":"SUBS","content":[
-                                    //          {"key":"AAPL","delayed":false,"assetMainType":"EQUITY","assetSubType":"COE","cusip":"037833100","1":214.15,"2":214.16},
-                                    //          {"key":"SPY","delayed":false,"assetMainType":"EQUITY","assetSubType":"ETF","cusip":"78462F103","1":548.45,"2":548.46},
-                                    //        ]
-                                    //      }
-                                    //    ]
-                                    //  }
-                                    ProcessDataLEVELONE_EQUITIES(d, msg);
-                                    break;
-                                default:
-                                    throw new Exception("Streamer data service " + d.service + " not implemented");
-                                    break;
-                            }
+                        for(var i=0; i<dataMsg.data.Count; i++)
+                        {
+                            var d = dataMsg.data[i];
+                            var service = ServiceList.Where(s => s.ServiceName == d.service).SingleOrDefault();
+                            if (service == null)
+                                throw new Exception("Streamer data service " + d.service + " not implemented");
+
+                            service.ProcessData(d, msg.data[i].content);
                         }
                         return;
                     }
@@ -259,111 +198,17 @@ namespace SchwabApiCS
             SendRequest(request);
         }
 
-        public void ProcesResponseADMIN(ResponseMessage.Response r)
-        {
-            switch (r.command)
-            {
-                case "LOGIN":
-                    if (r.content.code == 0)
-                    {
-                        isLoggedIn = true;
-                        while (requestQueue.Count > 0)
-                        {
-                            websocket.Send(requestQueue[0]);
-                            requestQueue.RemoveAt(0);
-                        }
-                    }
-                    else
-                        throw new Exception("streamer login failed.");
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        public void ProcesResponseLEVELONE_EQUITIES(ResponseMessage.Response r)
-        {
-            // { "response":[{ "service":"LEVELONE_EQUITIES","command":"SUBS","requestid":"1","SchwabClientCorrelId":"6abed7d7-e984-bcc4-9b7f-455bbd11f13d",
-            // "timestamp":1718745000244,"content":{ "code":0,"msg":"SUBS command succeeded"} }]}
-
-            if (r.content.code != 0)
-            {
-                throw new Exception(string.Format(
-                    "streamer LEVELONE_EQUITIES {0} Error: {1} {2} ", r.command, r.content.code, r.content.msg));
-            }
-
-            switch (r.command)
-            {
-                case "SUBS":
-                    levelOneEquities = new List<LevelOneEquities>(); // clear for new service
-                    break;
-                case "ADD":
-                    break;
-                case "UNSUBS":
-                    //levelOneEquities = new List<LevelOneEquities>();
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-
-        public void ProcessDataLEVELONE_EQUITIES(DataMessage.DataItem d, dynamic msg)
-        {
-            // {"data":[{"service":"LEVELONE_EQUITIES", "timestamp":1718759182782,"command":"SUBS","content":[{"key":"AAPL","delayed":false,"assetMainType":"EQUITY","assetSubType":"COE","cusip":"037833100","1":214,"2":214.02},{"key":"SPY","delayed":false,"assetMainType":"EQUITY","assetSubType":"ETF","cusip":"78462F103","1":548.76,"2":548.8},{"key":"IWM","delayed":false,"assetMainType":"EQUITY","assetSubType":"ETF","cusip":"464287655","1":200.77,"2":200.83}]}]}
-            // msg.data[0].timestamp.Value  - long
-            // msg.data[0].command.Value  SUBS
-
-            foreach (var q in msg.data[0].content)
-            {
-                var symbol = q.key.Value;
-
-                if (!activeEquitySymbols.Contains(symbol))
-                    continue;  // this one has been removed, but some results my come through for a bit.
-
-                var quote = levelOneEquities.Where(r => r.key == symbol).SingleOrDefault();
-                    if (quote == null)
-                    {
-                    try
-                    {
-                        quote = new LevelOneEquities()
-                        {
-                            key = symbol,
-                            delayed = q.delayed.Value,
-                            cusip = q.cusip.Value,
-                            assetMainType = q.assetMainType.Value,
-                            assetSubType = q.assetSubType.Value
-                        };
-                        levelOneEquities.Add(quote);
-                    }
-                    catch (Exception e)
-                    {
-                        var xx = 1;
-                    }
-                }
-                quote.timestamp = SchwabApi.ApiDateTime_to_DateTime(d.timestamp);
-                quote.UpdateProperties(q);
-            }
-            equitiesCallback(levelOneEquities); // callback to application with updated values
-        }
-
-        public delegate void EquitiesCallback(List<LevelOneEquities> levelOneEquities);
-
         /// <summary>
-        /// Level 1 Equities Request
+        /// Sewrvice Request
         /// </summary>
+        /// <param name="service">service name</param>
         /// <param name="symbols">comma separated list of symbols</param>
         /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquities.Fields</param>
-        /// <param name="callback">method to call whenever values change</param>
-        public void EquitiesRequest(string symbols, string fields, EquitiesCallback callback)
+        private void ServiceRequest(Services service, string symbols, string fields)
         {
-            activeEquitySymbols = symbols.ToUpper().Split(',').Select(r=> r.Trim()).Distinct().ToList(); // new list
-
             var request = new Request
             {
-                service = "LEVELONE_EQUITIES",
+                service = service.ToString(),
                 requestid = (++requestid).ToString(),
                 command = "SUBS",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
@@ -375,36 +220,31 @@ namespace SchwabApiCS
                 }
             };
             var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-            equitiesCallback = callback;
             SendRequest(req);
         }
 
         /// <summary>
-        /// Add symbols to streaming list (existing EquitiesRequest())
+        /// Add symbols to service
         /// </summary>
         /// <param name="symbols"></param>
         /// <exception cref="SchwabApiException"></exception>
-        public void EquitiesAdd(string symbols)
+        private void ServiceAdd(Services service, string symbols, List<string> activeSymbols)
         {
-            if (equitiesCallback == null)
-                throw new SchwabApiException("EquitiesRequest() must happen before a EquitiesAdd().");
-
             var list = symbols.ToUpper().Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
             symbols = "";
-            foreach(var s in list)
+            foreach (var s in list)
             {
-                if (!activeEquitySymbols.Contains(s))
+                if (!activeSymbols.Contains(s))
                 {
-                    activeEquitySymbols.Add(s);
+                    activeSymbols.Add(s);
                     symbols += "," + s;
                 }
             }
-
             if (symbols.Length > 0)
             {
                 var request = new Request
                 {
-                    service = "LEVELONE_EQUITIES",
+                    service = service.ToString(),
                     requestid = (++requestid).ToString(),
                     command = "ADD",
                     SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
@@ -413,7 +253,7 @@ namespace SchwabApiCS
                     {
                         keys = symbols.Substring(1),
                         fields = "0" // at this time its required to send a value but doesn't affect the fields returned
-                        // fields = FieldsSort(fields) // must be in assending order
+                                     // fields = FieldsSort(fields) // must be in assending order
                     }
                 };
                 var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
@@ -426,42 +266,22 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="symbols"></param>
         /// <exception cref="SchwabApiException"></exception>
-        public void EquitiesRemove(string symbols)
+        private void ServiceRemove(Services service, string symbols)
         {
-            if (equitiesCallback == null)
-                throw new SchwabApiException("EquitiesRequest() must happen before a EquitiesRemove().");
-
-            var list = symbols.Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
-            symbols = "";
-            foreach (var s in list)
+            var request = new Request
             {
-                if (activeEquitySymbols.Contains(s))
+                service = service.ToString(),
+                requestid = (++requestid).ToString(),
+                command = "UNSUBS",
+                SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
+                SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
+                parameters = new Parameters
                 {
-                    activeEquitySymbols.Remove(s);
-                    symbols += "," + s;
-                    var i = levelOneEquities.Where(r=> r.key == s).SingleOrDefault();
-                    if (i != null)
-                        levelOneEquities.Remove(i); // don't process anymore
+                    keys = symbols.Substring(1)
                 }
-            }
-
-            if (symbols.Length > 0)
-            {
-                var request = new Request
-                {
-                    service = "LEVELONE_EQUITIES",
-                    requestid = (++requestid).ToString(),
-                    command = "UNSUBS",
-                    SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
-                    SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                    parameters = new Parameters
-                    {
-                        keys = symbols.Substring(1)
-                    }
-                };
-                var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-                SendRequest(req);
-            }
+            };
+            var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            SendRequest(req);
         }
 
 
@@ -470,28 +290,25 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="fields"></param>
         /// <exception cref="SchwabApiException"></exception>
-        public void EquitiesView(string fields)
+        private void ServiceView(Services service, string fields)
         {
-            if (equitiesCallback == null)
-                throw new SchwabApiException("EquitiesRequest() must happen before a EquitiesView().");
-
             var request = new Request
             {
-                service = "LEVELONE_EQUITIES",
+                service = service.ToString(),
                 requestid = (++requestid).ToString(),
                 command = "VIEW",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
                 parameters = new Parameters
                 {
-                    fields = fields
+                    fields = FieldsSort(fields) // must be in assending order
                 }
             };
             var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
             SendRequest(req);
         }
 
-        enum Services
+        internal enum Services
         {                             // Delevery Type  Description
             ADMIN,                    //
             LEVELONE_EQUITIES,        // Change         Level 1 Equities Change
@@ -634,6 +451,44 @@ namespace SchwabApiCS
                 public double _1 { get; set; }
                 */
             }
+        }
+
+        public abstract class ServiceClass
+        {
+            protected Streamer streamer;
+            public string ServiceName { get; init; }
+            internal ServiceClass(Streamer streamer, Streamer.Services service)
+            {
+                this.streamer = streamer;
+                this.ServiceName = service.ToString();
+            }
+
+            internal virtual void ProcessResponse(ResponseMessage.Response response)
+            {
+                throw new Exception("Streamer service " + ServiceName + " not expecting Response Message: " + response.ToString());
+            }
+
+            internal virtual void ProcessData(DataMessage.DataItem d, dynamic content)
+            {
+                throw new Exception("Streamer service " + ServiceName + " not expecting Data Message: " + d.ToString());
+            }
+
+            internal virtual void Notify(NotifyMessage.Notify notify)
+            {
+                throw new Exception("Streamer service " + ServiceName + " not expecting Notify Message: " + notify.ToString());
+            }
+        }
+
+        public static string FieldsSort(string fields)
+        {
+            var f = fields.Split(',');
+            Array.Sort(f, (s1, s2) =>
+            { // sort numeric strings in numeric order.  Leading 0 is not allowd!
+                if (s1.Length == s2.Length)
+                    return s1.CompareTo(s2);
+                return (s1.Length >= s2.Length) ? 1 : -1; // longer one is always larger
+            });
+            return string.Join(",", f);
         }
     }
 }

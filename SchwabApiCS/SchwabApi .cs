@@ -1,14 +1,17 @@
 // <copyright file="SchwabApi.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 05 - released 2024-06-28
+// Version 04 - released 2024-06-20
 // Version 03 - released 2024-06-13
 
 using System;
 using System.Text;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
 
 namespace SchwabApiCS
 {
@@ -17,7 +20,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const int Version = 4; // 2024-06-17
+        public const int Version = 5;
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -98,7 +101,7 @@ namespace SchwabApiCS
         /// <param name="schwabTokens"></param>
         public SchwabApi(SchwabTokens schwabTokens)
         {
-            SchwabApi.schwabTokens = schwabTokens; // new SchwabTokens(schwabTokensFile, webView);
+            SchwabApi.schwabTokens = schwabTokens;
 
             if (schwabTokens.NeedsReAuthorization)
                 throw new SchwabApiException("Tokens needs reauthorization. Should be caught before this!");
@@ -405,6 +408,7 @@ namespace SchwabApiCS
                     return new ApiResponseWrapper<T>(default, true, (int)response.StatusCode, response.ReasonPhrase, response);
 
                 responseString = await response.Content.ReadAsStringAsync();
+
                 if (responseString == null)
                     return new ApiResponseWrapper<T>(default, true, (int)response.StatusCode, response.ReasonPhrase + ", null content.", response);
 

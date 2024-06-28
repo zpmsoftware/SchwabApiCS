@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <PackageReference Include="DashedJsonNamingPolicy" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2535.41" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="WebSocket4Net" Version="0.15.2" />
   </ItemGroup>

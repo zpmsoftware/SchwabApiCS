@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiCS", "SchwabApiCS\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiCS_Test", "SchwabApiTest\SchwabApiCS_Test.csproj", "{5450EA5E-CC1A-45B2-81B4-717D1916D6E9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiCS_WPF", "SchwabApiCS_WPF\SchwabApiCS_WPF.csproj", "{8DABE5B2-48EA-4A60-BA69-952044853D83}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{5450EA5E-CC1A-45B2-81B4-717D1916D6E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5450EA5E-CC1A-45B2-81B4-717D1916D6E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5450EA5E-CC1A-45B2-81B4-717D1916D6E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DABE5B2-48EA-4A60-BA69-952044853D83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DABE5B2-48EA-4A60-BA69-952044853D83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DABE5B2-48EA-4A60-BA69-952044853D83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DABE5B2-48EA-4A60-BA69-952044853D83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

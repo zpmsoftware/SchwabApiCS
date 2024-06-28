@@ -1,6 +1,6 @@
 ﻿// <copyright file="LevelOneEquities.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
 using System;
@@ -10,12 +10,163 @@ using static SchwabApiCS.SchwabApi;
 using static SchwabApiCS.Streamer.StreamerRequests;
 using System.Security.Authentication;
 using System.Windows.Controls;
+using static SchwabApiCS.Streamer.LevelOneEquity;
+using static SchwabApiCS.Streamer.ResponseMessage;
+using Accessibility;
 
 namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class LevelOneEquities
+        public class LevelOneEquitiesClass : ServiceClass
+        {
+            public delegate void EquitiesCallback(List<LevelOneEquity> data);
+            private List<LevelOneEquity> Data = new List<LevelOneEquity>();
+            private EquitiesCallback? Callback = null;
+            private List<string> ActiveSymbols = new List<string>(); // only accept streamed data from this list
+
+            public LevelOneEquitiesClass(Streamer streamer)
+                : base(streamer, Streamer.Services.LEVELONE_EQUITIES)
+            {
+            }
+
+            /// <summary>
+            /// Level 1 Equities Request
+            /// </summary>
+            /// <param name="symbols">comma separated list of symbols</param>
+            /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquity.Fields</param>
+            /// <param name="callback">method to call whenever values change</param>
+            public void Request(string symbols, string fields, EquitiesCallback callback)
+            {
+                ActiveSymbols = symbols.ToUpper().Split(',').Select(r => r.Trim()).Distinct().ToList(); // new list
+                streamer.ServiceRequest(Services.LEVELONE_EQUITIES, symbols, fields);
+                Callback = callback;
+            }
+
+            /// <summary>
+            /// Add symbols to streaming list (existing EquitiesRequest())
+            /// </summary>
+            /// <param name="symbols"></param>
+            /// <exception cref="SchwabApiException"></exception>
+            public void Add(string symbols)
+            {
+                if (Callback == null)
+                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.Add().");
+
+                streamer.ServiceAdd(Services.LEVELONE_EQUITIES, symbols, ActiveSymbols);
+            }
+
+            /// <summary>
+            /// remove symbols from streaming list
+            /// </summary>
+            /// <param name="symbols"></param>
+            /// <exception cref="SchwabApiException"></exception>
+            public void Remove(string symbols)
+            {
+                if (Callback == null)
+                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.Remove().");
+
+                var list = symbols.Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
+                symbols = "";
+                foreach (var s in list)
+                {
+                    if (ActiveSymbols.Contains(s))
+                    {
+                        ActiveSymbols.Remove(s);
+                        symbols += "," + s;
+                        var i = Data.Where(r => r.key == s).SingleOrDefault();
+                        if (i != null)
+                            Data.Remove(i); // don't process anymore
+                    }
+                }
+
+                if (symbols.Length > 0)
+                    streamer.ServiceRemove(Services.LEVELONE_EQUITIES, symbols);
+            }
+
+            /// <summary>
+            /// Change fields being streamed
+            /// </summary>
+            /// <param name="fields"></param>
+            /// <exception cref="SchwabApiException"></exception>
+            public void View(string fields)
+            {
+                if (Callback == null)
+                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.View().");
+
+                streamer.ServiceView(Services.LEVELONE_EQUITIES, fields);
+            }
+
+            /// <summary>
+            /// process received level one equities data
+            /// </summary>
+            /// <param name="response"></param>
+            /// <exception cref="Exception"></exception>
+            internal override void ProcessResponse(ResponseMessage.Response response)
+            {
+                // { "response":[{ "service":"LEVELONE_EQUITIES","command":"SUBS","requestid":"1","SchwabClientCorrelId":"6abed7d7-e984-bcc4-9b7f-455bbd11f13d",
+                // "timestamp":1718745000244,"content":{ "code":0,"msg":"SUBS command succeeded"} }]}
+
+                if (response.content.code != 0)
+                {
+                    throw new Exception(string.Format(
+                        "streamer LEVELONE_EQUITIES {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg));
+                }
+
+                switch (response.command)
+                {
+                    case "SUBS":
+                        Data = new List<LevelOneEquity>(); // clear for new service
+                        break;
+                    case "ADD":
+                        break;
+                    case "UNSUBS":
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            internal override void ProcessData(DataMessage.DataItem d, dynamic content)
+            {
+                for (var i = 0; i < d.content.Count; i++)
+                {
+                    var q = d.content[i];
+                    var symbol = q.key;
+
+                    if (!ActiveSymbols.Contains(symbol))
+                        continue;  // this one has been removed, but some results my come through for a bit.
+
+                    var quote = Data.Where(r => r.key == symbol).SingleOrDefault();
+                    if (quote == null)
+                    {
+                        try
+                        {
+                            quote = new LevelOneEquity()
+                            {
+                                key = symbol,
+                                delayed = q.delayed,
+                                cusip = q.cusip,
+                                assetMainType = q.assetMainType,
+                                assetSubType = q.assetSubType
+                            };
+                            Data.Add(quote);
+                        }
+                        catch (Exception e)
+                        {
+                            var xx = 1;
+                        }
+                    }
+                    quote.timestamp = SchwabApi.ApiDateTime_to_DateTime(d.timestamp);
+                    quote.UpdateProperties(content[i]);
+                }
+                Callback(Data); // callback to application with updated values
+            }
+
+        }
+
+        public class LevelOneEquity
         {
             public enum Fields  // Level 1 Equities Fields
             {
@@ -79,26 +230,14 @@ namespace SchwabApiCS
                 PostMarketPercentChange // double   Percent Change in price since the end of the regular session (typically 4:00pm), PostMarketNetChange / RegularMarketLastPrice* 100
             };
 
-
-            public static string FieldsSort(string fields)
-            {
-                var f = fields.Split(',');
-                Array.Sort(f, (s1, s2) =>
-                { // sort numeric strings in numeric order.  Leading 0 is not allowd!
-                    if (s1.Length == s2.Length)
-                        return s1.CompareTo(s2);
-                    return (s1.Length >= s2.Length) ? 1 : -1; // longer one is always larger
-                });
-                return string.Join(",", f);
-            }
-
-
             private static string allFields = null;
             /// <summary>
             /// Comma seperated list of all fields
             /// </summary>
-            public static string AllFields {
-                get {
+            public static string AllFields
+            {
+                get
+                {
                     if (allFields == null)
                     {
                         var count = Enum.GetNames(typeof(Fields)).Length;
@@ -144,12 +283,7 @@ namespace SchwabApiCS
             /// <returns></returns>
             public static string CustomFields(params Fields[] fields)
             {
-                return string.Join(",", fields.Select(f=> (int)f));
-            }
-
-            public override string ToString()
-            {
-                return key + timestamp.ToString("  h:mm:ss tt");
+                return string.Join(",", fields.Select(f => (int)f));
             }
 
             /// <summary>
@@ -159,7 +293,7 @@ namespace SchwabApiCS
             public void UpdateProperties(Newtonsoft.Json.Linq.JObject data)
             {
                 // "key": "AAPL", "delayed": false, "assetMainType": "EQUITY", "assetSubType": "COE", "cusip": "037833100", "1": 214.17, "2": 214.22 ......
-                
+
                 //timestamp = data.time
 
                 foreach (var d in data)
@@ -194,7 +328,7 @@ namespace SchwabApiCS
                             case (int)Fields.DividendYield: DividendYield = (double)d.Value; break;
                             case (int)Fields.NAV: NAV = (double)d.Value; break;
                             case (int)Fields.ExchangeName: ExchangeName = (string)d.Value; break;
-                            case (int)Fields.DividendDate: DividendDate =  (DateTime)d.Value; break;
+                            case (int)Fields.DividendDate: DividendDate = (DateTime)d.Value; break;
                             case (int)Fields.RegularMarketQuote: RegularMarketQuote = (bool)d.Value; break;
                             case (int)Fields.RegularMarketTrade: RegularMarketTrade = (bool)d.Value; break;
                             case (int)Fields.RegularMarketLastPrice: RegularMarketLastPrice = (double)d.Value; break;
@@ -223,7 +357,7 @@ namespace SchwabApiCS
                         }
                     }
                 }
-                
+
             }
 
             public string key { get; set; }

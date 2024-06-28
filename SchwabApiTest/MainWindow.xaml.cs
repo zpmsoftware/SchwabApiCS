@@ -1,6 +1,6 @@
 ﻿// <copyright file="Mainwindow.xaml.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
 using System;
@@ -11,6 +11,8 @@ using SchwabApiCS;
 using static SchwabApiCS.SchwabApi;
 using System.Windows.Controls;
 using static SchwabApiCS.Streamer;
+using SchwabApiCS_Test;
+using System.IO;
 
 namespace SchwabApiTest
 {
@@ -32,27 +34,20 @@ namespace SchwabApiTest
                 InitializeComponent();
 
                 Title = title;
-                // the location of the tokens file is up for suggestions.....
                 // modify tokenDataFileName to where your tokens are located
                 var resourcesPath = System.IO.Directory.GetCurrentDirectory();
                 var p = resourcesPath.IndexOf(@"\SchwabApiTest\");
                 if (p != -1)
                     resourcesPath = resourcesPath.Substring(0, p + 15);
 
-                tokenDataFileName = resourcesPath + "SchwabTokens.json";
-
-
-                schwabTokens = new SchwabTokens(tokenDataFileName, webView); // gotta get the tokens First.
-
-
+                tokenDataFileName = resourcesPath + "SchwabTokens.json"; // located in the project folder.
+                schwabTokens = new SchwabTokens(tokenDataFileName); // gotta get the tokens First.
                 if (schwabTokens.NeedsReAuthorization)
                 {
-                    mainView.Visibility = Visibility.Collapsed;
-                    Title += ": Schwab Access Token has expired. Reauthorization required";
-                    schwabTokens.ReAuthorize(webView, AppStart); // brings up authorization page
+                    SchwabApiCS_WPF.ApiAuthorize.Open(tokenDataFileName);
+                    schwabTokens = new SchwabTokens(tokenDataFileName); // reload changes
                 }
-                else
-                    AppStart();
+                AppStart();
             }
             catch (Exception ex)
             {
@@ -100,8 +95,6 @@ namespace SchwabApiTest
             // application code starts here =============================
             var t = Test();
             t.Wait();
-            mainView.Visibility = Visibility.Visible;
-            webView.Visibility = Visibility.Collapsed;
             Title = title + ", version " + SchwabApi.Version.ToString();
 
             var symbols = new List<SymbolItem>(); // symbols list for accounts positions.
@@ -150,7 +143,7 @@ namespace SchwabApiTest
             for (var x = 0; x < symbols.Count; x++)
             {
                 DataGridTextColumn textColumn = new DataGridTextColumn();
-                textColumn.Binding = new System.Windows.Data.Binding("PositionPL[" + x.ToString() + "]") { StringFormat = "#.00;#.00; " };
+                textColumn.Binding = new System.Windows.Data.Binding("PositionPL[" + x.ToString() + "]") { StringFormat = "#.00;-.00; " };
                 var s = new Style();
                 s.Setters.Add(new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Right));
                 s.Setters.Add(new Setter(TextBlock.PaddingProperty, new Thickness(8, 3, 30, 3)));
@@ -165,13 +158,30 @@ namespace SchwabApiTest
             AccountList.ItemsSource = accts;
         }
 
-        public void StreamerCallback(List<LevelOneEquities> levelOneEquities)
+        public void StreamerCallback(List<LevelOneEquity> levelOneEquities)
         {
             EquityList.Dispatcher.Invoke(() =>
             {
                 EquityList.ItemsSource = null; // to force refresh
                 EquityList.ItemsSource = levelOneEquities;
             });
+        }
+
+        public void OptionsStreamerCallback(List<LevelOneOption> levelOneOptions)
+        {
+            OptionsList.Dispatcher.Invoke(() =>
+            {
+                OptionsList.ItemsSource = null; // to force refresh
+                OptionsList.ItemsSource = levelOneOptions.OrderBy(r=> r.Symbol).ToList();
+            });
+        }
+
+        public void FuturesStreamerCallback(List<LevelOneFuture> levelOneOptions)
+        {
+        }
+
+        public void AccountActivityStreamerCallback(List<AccountActivity> accountActivity)
+        {
         }
 
         public async Task<string>Test()
@@ -186,10 +196,26 @@ namespace SchwabApiTest
                 //var accountNumber = accounts.Where(r=> r.securitiesAccount.accountPreferences.nickName.Contains("401")).First().securitiesAccount.accountNumber; // account index to use for testing.
 
                 streamer = new Streamer(schwabApi);
-                streamer.EquitiesRequest("SPY,IWM,GLD,NVDA", Streamer.LevelOneEquities.CommonFields, StreamerCallback);
-                streamer.EquitiesAdd("AAPL" );
-                //streamer.EquitiesRemove("AAPL"); - works
-                // streamer.EquitiesView(Streamer.LevelOneEquities.AllFields); -- not working yet
+                streamer.LevelOneEquities.Request("SPY,IWM,GLD,NVDA", Streamer.LevelOneEquity.CommonFields, StreamerCallback);
+                streamer.LevelOneEquities.Add("AAPL" );
+                //streamer.LevelOneEquities.Remove("AAPL"); - works
+                // streamer.LevelOneEquities.View(Streamer.LevelOneEquities.AllFields); -- not working yet
+
+                var ocp = new OptionChainParameters
+                {
+                    contractType = SchwabApi.ContractType.ALL,
+                    strike = 210
+                };
+
+                var aaplOptions = schwabApi.GetOptionChain("AAPL", ocp);
+                var optionSymbols = string.Join(',', aaplOptions.calls.Select(a => a.symbol).ToArray());
+                streamer.LevelOneOptions.Request(optionSymbols, LevelOneOption.CommonFields, OptionsStreamerCallback);
+
+                streamer.AccountActivities.Request(AccountActivityStreamerCallback);
+
+                // streamer.FuturesRequest("/ESN24", LevelOneOptions.CommonFields, FuturesStreamerCallback); - not available yet?  accepts call, no results
+
+
 
                 var taskAppl = schwabApi.GetQuoteAsync("AAPL");
                 taskAppl.Wait();

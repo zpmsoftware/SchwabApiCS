@@ -1,6 +1,6 @@
 ﻿// <copyright file="SchwabTokens.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
 using System;
@@ -8,8 +8,6 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using Newtonsoft.Json;
-using Microsoft.Web.WebView2.Core;
-using Microsoft.Web.WebView2.Wpf;
 using System.Net.Http;
 using static SchwabApiCS.SchwabApi;
 
@@ -17,20 +15,18 @@ namespace SchwabApiCS
 {
     public class SchwabTokens
     {
-        private const string baseUrl = "https://api.schwabapi.com/v1/oauth";
-        private SchwabTokensData tokens;
+        public const string baseUrl = "https://api.schwabapi.com/v1/oauth";
+        public SchwabTokensData tokens;
         private string tokenDataFileName;
-        private WebView2 webView = null;  // webbrowser object used to get initial AccessToken, or when RefreshToken expires
 
         /// <summary>
         /// Loads saved tokens info
         /// </summary>
-        /// <param name="webView">WebView2 control that will get authorization code</param>
-        public SchwabTokens(string _tokenDataFileName, WebView2 webView)
+        /// <param name="_tokenDataFileName">full path name of tokens file</param>
+        /// <exception cref="SchwabApiException"></exception>
+        public SchwabTokens(string _tokenDataFileName)
         {
-            this.webView = webView;
             this.tokenDataFileName = _tokenDataFileName;
-
             using (StreamReader sr = new StreamReader(tokenDataFileName))  // load saved tokens
             {
                 var jsonTokens = sr.ReadToEnd();
@@ -45,12 +41,11 @@ namespace SchwabApiCS
             if (string.IsNullOrEmpty(tokens.AppKey)) throw new SchwabApiException("Schwab AppKey is not defined");
             if (string.IsNullOrEmpty(tokens.Secret)) throw new SchwabApiException("Schwab Secret is not defined");
             if (string.IsNullOrEmpty(tokens.Redirect_uri)) throw new SchwabApiException("SchwabRedirect_uri is not defined");
-             
         }
 
         public bool NeedsReAuthorization {  get { return DateTime.Now >= tokens.RefreshTokenExpires; } }
 
-        private System.Uri AuthorizeUri
+        public System.Uri AuthorizeUri
         {
             get { return new System.Uri(baseUrl + "/authorize?client_id=" + tokens.AppKey + "&redirect_uri="+ tokens.Redirect_uri); }
         }
@@ -106,64 +101,13 @@ namespace SchwabApiCS
             }
         }
 
-        public delegate void AppStartCallback();
-        private AppStartCallback appStartCallback;
-
-        public void ReAuthorize(WebView2 webView, AppStartCallback appStartCallback)
-        {
-            this.appStartCallback = appStartCallback;
-
-            webView.Dispatcher.Invoke(() =>
-            {
-                webView.Visibility = Visibility.Visible;
-                webView.NavigationCompleted += NavCompleted;
-                webView.Source = AuthorizeUri;
-            });
-
-            tokens.RefreshToken = "";
-        }
-
-        /// <summary>
-        /// Website re-authorization complete 
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        private void NavCompleted(object sender, CoreWebView2NavigationCompletedEventArgs args)
-        {
-            var wv = (Microsoft.Web.WebView2.Wpf.WebView2)sender;
-
-            if (wv.Source.AbsoluteUri.StartsWith("https://127.0.0.1"))
-            {
-
-                if (wv.Source.AbsoluteUri.Contains("error=access_denied"))
-                    throw new SchwabApiException("Reauthorization was not completed properly, restart and try again.");
-
-                var p = wv.Source.AbsoluteUri.IndexOf("code=") + 5;
-                var p2 = wv.Source.AbsoluteUri.IndexOf("&session");
-                var authCode = Uri.UnescapeDataString(wv.Source.AbsoluteUri.Substring(p, p2 - p));
-
-                var httpClient = new HttpClient();
-                var content = new StringContent("code=" + authCode + "&redirect_uri=" + tokens.Redirect_uri + "&grant_type=authorization_code",
-                                                Encoding.UTF8, "application/x-www-form-urlencoded");
-
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Basic " + SchwabApi.Base64Encode(tokens.AppKey + ":" + tokens.Secret));
-
-                var response = httpClient.PostAsync(baseUrl + "/token", content).Result;
-                SaveTokens(response, "NavCompleted");
-
-                webView.Visibility = Visibility.Collapsed;
-                webView.NavigationCompleted -= NavCompleted;
-                appStartCallback();
-            }
-        }
-
         /// <summary>
         /// extract tokens and save
         /// </summary>
         /// <param name="responseJson"></param>
         /// <param name="callingMethod">name of calling method </param>
         /// <exception cref="Exception"></exception>
-        private void SaveTokens(HttpResponseMessage response, string callingMethod)
+        public void SaveTokens(HttpResponseMessage response, string callingMethod)
         {
             var responseJson = response.Content.ReadAsStringAsync();
             responseJson.Wait();
@@ -192,12 +136,16 @@ namespace SchwabApiCS
             }
             else
             {
-                // A Trader API access token is valid for 30 minutes. A Trader API refresh token is valid for 7 days.
+                // A Trader API access token is valid for 30 minutes. A Trader API refresh token is valid for 7 days (?? maybe longer)
                 var r = JsonConvert.DeserializeObject<TokenResult>(responseJson.Result);
                 this.tokens.AccessToken = r.access_token;
-                this.tokens.RefreshToken = r.refresh_token;
-                this.tokens.AccessTokenExpires = DateTime.Now.AddSeconds(r.expires_in - 10);
-                this.tokens.RefreshTokenExpires = DateTime.Today.AddDays(7);
+                this.tokens.AccessTokenExpires = DateTime.Now.AddSeconds(r.expires_in - 10); // 10 second buffer
+
+                if (this.tokens.RefreshToken != r.refresh_token)
+                {
+                    this.tokens.RefreshToken = r.refresh_token;
+                    this.tokens.RefreshTokenExpires = DateTime.Today.AddDays(7); // only update expires when RefreshToken changes
+                }
                 SaveTokens();
             }
         }
@@ -230,7 +178,7 @@ namespace SchwabApiCS
         /// <summary>
         /// What is saved in the token data file
         /// </summary>
-        private class SchwabTokensData
+        public class SchwabTokensData
         {
             public string AccessToken { get; set; } = "";
             public string RefreshToken { get; set; } = "";

@@ -4,259 +4,453 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SchwabApiTest"
-        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="SchwabApiCS - Schwab API Library Test" Height="900" Width="1100">
-    <StackPanel Background="#f4f4f4">
-        <StackPanel Name="mainView" Visibility="Visible" >
-            <Label Name="completeMessage" FontSize="20">SchwabApi test results.</Label>
-            <TabControl Height="auto" Width="auto" Background="Transparent" Margin="10,3,10,10" BorderThickness="2">
-                <TabItem Header="Accounts" Width="100" FontWeight="Bold" FontSize="14">
-                    <StackPanel Height="780" Background="#e0e0e0">
-                        <DataGrid Name="AccountList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
+    <StackPanel Name="mainView" Visibility="Visible" Background="#f4f4f4">
+        <Label Name="completeMessage" FontSize="20">SchwabApi test results.</Label>
+        <TabControl Height="auto" Width="auto" Background="Transparent" Margin="10,3,10,10" BorderThickness="2">
+            <TabItem Header="Accounts" Width="100" FontWeight="Bold" FontSize="14">
+                <StackPanel Height="780" Background="#e0e0e0">
+                    <DataGrid Name="AccountList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
                                       MinHeight="200" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12">
-                            <DataGrid.Resources>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                </Style>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header = "Account" Binding = "{Binding AccountNumber}">
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header = "Name" Binding = "{Binding AccountName}" />
-                                <DataGridTextColumn Header = "Value" Binding = "{Binding Path=LiquidationValue, StringFormat=C}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                        <DataGrid.Resources>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header = "Account" Binding = "{Binding AccountNumber}">
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Name" Binding = "{Binding AccountName}" />
+                            <DataGridTextColumn Header = "Value" Binding = "{Binding Path=LiquidationValue, StringFormat=C}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Cash" Binding = "{Binding Path=CashBalanceDisplay, StringFormat=C}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Cash" Binding = "{Binding Path=CashBalanceDisplay, StringFormat=C}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Day PL" Binding = "{Binding Path=DayPL, StringFormat=C}">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Day PL" Binding = "{Binding Path=DayPL, StringFormat=C}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <Label  FontWeight="normal" FontSize="14">Showing today's profit or loss for each position</Label>
-                    </StackPanel>
-                </TabItem>
-                <TabItem Header="Quotes" Width="100" FontWeight="Bold" FontSize="14">
-                    <Canvas Height="780" Background="#e0e0e0">
-                        <Label Name="QuoteTitle" FontSize="16" FontWeight="Bold" Margin="8,0,0,0">Quote: AAPL</Label>
-                        <Border Canvas.Top="30" Height="740" Width="280" BorderBrush="#555"  BorderThickness="1" Margin="10,0,0,0" HorizontalAlignment="Left" >
-                            <ScrollViewer VerticalScrollBarVisibility="Visible" >
-                                <TextBlock Name="Quote" Background="white" FontWeight="Normal"  FontSize="13" Padding="4"></TextBlock>
-                            </ScrollViewer>
-                        </Border>
-                        <Label Name="TaskTitle" Canvas.Left="300" FontSize="16"  FontWeight="Bold" Margin="8,0,0,0">Quote with task info (see end)</Label>
-                        <Border Canvas.Left="300" Height="740" Canvas.Top="30" BorderBrush="#555"  BorderThickness="1" Margin="10,0,0,0" HorizontalAlignment="Left" >
-                            <ScrollViewer VerticalScrollBarVisibility="Visible" >
-                                <TextBlock Name="TaskJson" Background="white" MinWidth="400" FontWeight="Normal" FontSize="13" Padding="4"></TextBlock>
-                            </ScrollViewer>
-                        </Border>
-                    </Canvas>
-                </TabItem>
-                <TabItem Header="Streaming" Width="100" FontWeight="Bold" FontSize="14">
-                    <StackPanel Height="780" Background="#e0e0e0">
-                        <Label  FontWeight="normal" FontSize="14">Level 1 Equities</Label>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Label  FontWeight="normal" FontSize="14">Showing today's profit or loss for each position</Label>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="Quotes" Width="100" FontWeight="Bold" FontSize="14">
+                <Canvas Height="780" Background="#e0e0e0">
+                    <Label Name="QuoteTitle" FontSize="16" FontWeight="Bold" Margin="8,0,0,0">Quote: AAPL</Label>
+                    <Border Canvas.Top="30" Height="740" Width="280" BorderBrush="#555"  BorderThickness="1" Margin="10,0,0,0" HorizontalAlignment="Left" >
+                        <ScrollViewer VerticalScrollBarVisibility="Visible" >
+                            <TextBlock Name="Quote" Background="white" FontWeight="Normal"  FontSize="13" Padding="4"></TextBlock>
+                        </ScrollViewer>
+                    </Border>
+                    <Label Name="TaskTitle" Canvas.Left="300" FontSize="16"  FontWeight="Bold" Margin="8,0,0,0">Quote with task info (see end)</Label>
+                    <Border Canvas.Left="300" Height="740" Canvas.Top="30" BorderBrush="#555"  BorderThickness="1" Margin="10,0,0,0" HorizontalAlignment="Left" >
+                        <ScrollViewer VerticalScrollBarVisibility="Visible" >
+                            <TextBlock Name="TaskJson" Background="white" MinWidth="400" FontWeight="Normal" FontSize="13" Padding="4"></TextBlock>
+                        </ScrollViewer>
+                    </Border>
+                </Canvas>
+            </TabItem>
+            <TabItem Header="Streaming" Width="100" FontWeight="Bold" FontSize="14">
+                <StackPanel Height="780" Background="#e0e0e0">
+                    <Label  FontWeight="normal" FontSize="14">Level 1 Equities</Label>
 
-                        <DataGrid Name="EquityList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
+                    <DataGrid Name="EquityList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
                                       MinHeight="200" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12">
-                            <DataGrid.Resources>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                </Style>
-                            </DataGrid.Resources>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header = "Symbol" Binding = "{Binding key}"/>
-                                <DataGridTextColumn Header = "Description" Binding = "{Binding Description}" />
+                        <DataGrid.Resources>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header = "Symbol" Binding = "{Binding key}"/>
+                            <DataGridTextColumn Header = "Description" Binding = "{Binding Description}" />
 
-                                <DataGridTextColumn Header = "Bid" Binding = "{Binding BidPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Bid" Binding = "{Binding BidPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Mark" Binding = "{Binding MarkPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Mark" Binding = "{Binding MarkPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Ask" Binding = "{Binding AskPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Ask" Binding = "{Binding AskPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Last" Binding = "{Binding LastPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Last" Binding = "{Binding LastPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "High" Binding = "{Binding HighPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "High" Binding = "{Binding HighPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Low" Binding = "{Binding LowPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Low" Binding = "{Binding LowPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Open" Binding = "{Binding OpenPrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Open" Binding = "{Binding OpenPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "PrevClose" Binding = "{Binding ClosePrice, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "PrevClose" Binding = "{Binding ClosePrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Volume" Binding = "{Binding TotalVolume, StringFormat=N0}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Volume" Binding = "{Binding TotalVolume, StringFormat=N0}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                                <DataGridTextColumn Header = "Net Change" Binding = "{Binding NetChange, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                
-                                <DataGridTextColumn Header = "Change%" Binding = "{Binding NetPercentChange, StringFormat=N2}">
-                                    <DataGridTextColumn.HeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                        </Style>
-                                    </DataGridTextColumn.HeaderStyle>
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="{x:Type TextBlock}">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="Padding" Value="5 1 5 1"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                            <DataGridTextColumn Header = "Net Change" Binding = "{Binding NetChange, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
 
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>                    
-                </TabItem>
-            </TabControl>
-        </StackPanel>
-        <wv2:WebView2 Name="webView" Visibility="hidden" Height="900" Width="1100"/>
+                            <DataGridTextColumn Header = "Change%" Binding = "{Binding NetPercentChange, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    
+                    <Label  FontWeight="normal" FontSize="14">Level 1 Options</Label>
+
+                    <DataGrid Name="OptionsList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
+                       MinHeight="200" MaxHeight="300" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12">
+                        <DataGrid.Resources>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header = "Symbol" Binding = "{Binding key}"/>
+                            <DataGridTextColumn Header = "Description" Binding = "{Binding Description}" />
+
+                            <DataGridTextColumn Header = "Bid" Binding = "{Binding BidPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Mark" Binding = "{Binding MarkPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Ask" Binding = "{Binding AskPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Last" Binding = "{Binding LastPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "High" Binding = "{Binding HighPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Low" Binding = "{Binding LowPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Open" Binding = "{Binding OpenPrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "PrevClose" Binding = "{Binding ClosePrice, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Volume" Binding = "{Binding TotalVolume, StringFormat=N0}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Net Change" Binding = "{Binding NetChange, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Change%" Binding = "{Binding NetPercentChange, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Delta" Binding = "{Binding Delta, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Theta" Binding = "{Binding Theta, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
     </StackPanel>
 </Window>

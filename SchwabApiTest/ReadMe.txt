@@ -22,30 +22,6 @@ There you can inspect some of the responses.
 
 See ReleaseNotes.docx in the SchwabApiCS folder for upto date changes.
 
-I'm pretty new to using async/await and all seems to be working, but if I'm doing something wrong let me know.
-
 The tokens, appkey and secret are stored in a plain text file (SchwabTokens.json).
 Some thought should be given to where it should be kept and encryption.
-
-If we get a handful of people interested, we may want to set up a github site.
-
-Always open to suggestions, because I don't know what I don't know, and don't mind learning.
-And of course, there's always bugs...
-
-Also, I expect you will find some issues getting started.  Let me know about them so I can address it for the next person.
-
-See ReleaseNotes.txt in the SchwabApiCs project.
-
-FYI - ZPM Software Inc is my consulting company, just me.
-
-Gary Hoff.
-
-====== More General Notes =======================================
-Double vs Decimal
-I'm using decimal instead of double in most api methods. Why? No rounding issues with decimal.
-However with PriceHistory I use double. Why? Performance. Decimal is slower than double. 
-Immaterial most of the time, but with price history I do a lot of back testing, often millions of calculations.
-
-If you really want to use double, I don't see any issues with a global replace all decimal with double (but haven't tried it).
-
 

@@ -1,6 +1,6 @@
 ﻿// <copyright file="Options.cs" company="ZPM Software Inc">
 // Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. http://mozilla.org/MPL/2.0/.
+// This Source Code is subject to the terms MIT Public License
 // </copyright>
 
 using System;
@@ -24,12 +24,12 @@ namespace SchwabApiCS
         /// <param name="type"></param>
         /// <param name="strikeCount"></param>
         /// <returns>OptionChain</returns>
-        public OptionChain GetOptionChain(string symbol, ContractType type, int strikeCount)
+        public OptionChain GetOptionChain(string symbol, ContractType type, int? strikeCount=null)
         {
             return WaitForCompletion(GetOptionChainAsync(symbol, type, strikeCount));
         }
 
-        public async Task<ApiResponseWrapper<OptionChain>> GetOptionChainAsync(string symbol, ContractType type, int strikeCount)
+        public async Task<ApiResponseWrapper<OptionChain>> GetOptionChainAsync(string symbol, ContractType type, int? strikeCount = null)
         {
             var p = new OptionChainParameters() { contractType = type, strikeCount=strikeCount };
             return await GetOptionChainAsync(symbol, p);
