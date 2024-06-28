@@ -1,7 +1,9 @@
 ﻿Schwab API Test.
 
-To start, you need to modify SchwabTokens.json  (located in the SchwabApiCS_Test folder)
+It this is your initial setup, you need to copy SchwabApiCS_Test\SchwabTokens_empty.json 
+to SchwabApiCS_Test\SchwabTokens.json before you run SchwabApiCS_Test.
 
+Edit SchwabApiCS_Test\SchwabTokens.json:
 1. Set AccessToken to "". This will trigger the app to run the web page to generate new tokens.
 2. Set AppKey to your appkey value.
 3. Set Secret to your secret value.
