@@ -47,6 +47,15 @@ namespace SchwabApiCS
         /// <returns>orderId or null</returns>
         public async Task<ApiResponseWrapper<long?>> OrderExecuteNewAsync(string accountNumber, Order order)
         {
+            if (order.orderLegCollection != null)
+            {
+                foreach (var o in order.orderLegCollection)
+                {
+                    if ((o.instruction == "BUY" || o.instruction == "SELL") && o.instrument.assetType == "OPTION")
+                        throw new SchwabApiException("OrderExecuteNewAsync error: Instruction " + o.instruction + " invalid with Options.");
+                }
+            }
+
             order.price = PriceAdjust(order.price); // Schwab rule: orders aboive $1 can only have 2 decimals.
             order.stopPrice = PriceAdjust(order.stopPrice);
 

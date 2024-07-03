@@ -7,9 +7,7 @@ using System;
 using Newtonsoft.Json;
 using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
-using static SchwabApiCS.Streamer.StreamerRequests;
 using System.Security.Authentication;
-using static SchwabApiCS.Streamer;
 
 
 // https://json2csharp.com/
@@ -22,8 +20,9 @@ namespace SchwabApiCS
         public LevelOneOptionsClass LevelOneOptions;
         public AccountActivityClass AccountActivities;
 
-        private LevelOneFuturesClass LevelOneFutures; // not ready yet
+        public LevelOneFuturesClass LevelOneFutures; // not ready yet
 
+        private static JsonSerializerSettings jsonSettings = new JsonSerializerSettings() { MissingMemberHandling = MissingMemberHandling.Error };
         private List<ServiceClass> ServiceList = new List<ServiceClass>();
         private UserPreferences.StreamerInfo streamerInfo;
         private SchwabApi schwabApi;
@@ -167,14 +166,14 @@ namespace SchwabApiCS
 
         private string LoginRequest()
         {
-            var request = new Request
+            var request = new StreamerRequests.Request
             {
                 service = "ADMIN",
                 requestid = (++requestid).ToString(),
                 command = "LOGIN",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                parameters = new Parameters
+                parameters = new StreamerRequests.Parameters
                 {
                     Authorization = SchwabApi.schwabTokens.AccessToken,
                     SchwabClientChannel = streamerInfo.schwabClientChannel,
@@ -187,7 +186,7 @@ namespace SchwabApiCS
 
         public void LogOut()
         {
-            var request = new Request()
+            var request = new StreamerRequests.Request()
             {
                 requestid = (++requestid).ToString(),
                 service = Services.ADMIN.ToString(),
@@ -206,14 +205,14 @@ namespace SchwabApiCS
         /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquities.Fields</param>
         private void ServiceRequest(Services service, string symbols, string fields)
         {
-            var request = new Request
+            var request = new StreamerRequests.Request
             {
                 service = service.ToString(),
                 requestid = (++requestid).ToString(),
                 command = "SUBS",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                parameters = new Parameters
+                parameters = new StreamerRequests.Parameters
                 {
                     keys = symbols,
                     fields = FieldsSort(fields) // must be in assending order
@@ -242,14 +241,14 @@ namespace SchwabApiCS
             }
             if (symbols.Length > 0)
             {
-                var request = new Request
+                var request = new StreamerRequests.Request
                 {
                     service = service.ToString(),
                     requestid = (++requestid).ToString(),
                     command = "ADD",
                     SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                     SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                    parameters = new Parameters
+                    parameters = new StreamerRequests.Parameters
                     {
                         keys = symbols.Substring(1),
                         fields = "0" // at this time its required to send a value but doesn't affect the fields returned
@@ -268,14 +267,14 @@ namespace SchwabApiCS
         /// <exception cref="SchwabApiException"></exception>
         private void ServiceRemove(Services service, string symbols)
         {
-            var request = new Request
+            var request = new StreamerRequests.Request
             {
                 service = service.ToString(),
                 requestid = (++requestid).ToString(),
                 command = "UNSUBS",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                parameters = new Parameters
+                parameters = new StreamerRequests.Parameters
                 {
                     keys = symbols.Substring(1)
                 }
@@ -292,14 +291,14 @@ namespace SchwabApiCS
         /// <exception cref="SchwabApiException"></exception>
         private void ServiceView(Services service, string fields)
         {
-            var request = new Request
+            var request = new StreamerRequests.Request
             {
                 service = service.ToString(),
                 requestid = (++requestid).ToString(),
                 command = "VIEW",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                parameters = new Parameters
+                parameters = new StreamerRequests.Parameters
                 {
                     fields = FieldsSort(fields) // must be in assending order
                 }

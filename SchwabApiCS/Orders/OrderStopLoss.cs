@@ -50,7 +50,7 @@ namespace SchwabApiCS
                 return new ApiResponseWrapper<long?> (default, true, 900, "stopPrice is required on STOP orders");
 
             var order = new Order(OrderType.STOP, Order.OrderStrategyTypes.SINGLE, session, duration, stopPrice);
-            order.Add(new Order.OrderLeg(symbol, assetType, quantity));
+            order.Add(new Order.OrderLeg(symbol, assetType, Position.TO_CLOSE, quantity));
 
             return await OrderExecuteNewAsync(accountNumber, order);
         }

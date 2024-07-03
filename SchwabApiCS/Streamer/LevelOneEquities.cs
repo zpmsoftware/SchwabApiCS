@@ -290,7 +290,7 @@ namespace SchwabApiCS
             /// Update LevelOneEquities object with streamed data
             /// </summary>
             /// <param name="data">streamed data</param>
-            public void UpdateProperties(Newtonsoft.Json.Linq.JObject data)
+            internal void UpdateProperties(Newtonsoft.Json.Linq.JObject data)
             {
                 // "key": "AAPL", "delayed": false, "assetMainType": "EQUITY", "assetSubType": "COE", "cusip": "037833100", "1": 214.17, "2": 214.22 ......
 

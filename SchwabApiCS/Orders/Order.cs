@@ -112,7 +112,9 @@ namespace SchwabApiCS
         // ========= ORDER_ENUMS DEFINITIONS ==================================================
         #region Order_Enums
 
-        public enum Instruction { BUY, SELL };
+        public enum Position { TO_OPEN, TO_CLOSE };
+
+        public enum Instruction { BUY, SELL, BUY_TO_COVER, SELL_SHORT, BUY_TO_OPEN, BUY_TO_CLOSE, SELL_TO_OPEN, SELL_TO_CLOSE, EXCHANGE, SELL_SHORT_EXEMPT };
 
         public enum OrderType
         {
@@ -398,18 +400,67 @@ namespace SchwabApiCS
             public OrderLeg() { }  // empty order leg
 
             /// <summary>
-            /// New Order Leg
+            /// New Order Leg.  Assumes opening a position if quantity >0 or closing if < 0.  Does not support shorting equities oe selling options.
             /// </summary>
-            /// <param name="instruction"></param>
-            /// <param name="quantity">Negative to sell, positive to buy</param>
             /// <param name="symbol"></param>
             /// <param name="assetType"></param>
+            /// <param name="quantity">Negative to sell, positive to buy</param>
             /// <returns></returns>
+            [Obsolete("This OrderLeg constructor is deprecated. It assumes buy/sell based on quantity, which doesn't support shorting or selling optons.")]
             public OrderLeg(string symbol, AssetType assetType, decimal quantity)
             {
-                this.instruction = quantity > 0 ? Instruction.BUY.ToString() : Instruction.SELL.ToString();
+                CalculateInstruction(assetType, quantity > 0 ? Position.TO_OPEN : Position.TO_CLOSE , quantity);
                 this.quantity = Math.Abs(quantity);
                 this.instrument = new Order.Instrument() { symbol = symbol, assetType = assetType.ToString() };
+            }
+
+
+            /// <summary>
+            /// New Order Leg
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="assetType"></param>
+            /// <param name="position">TO_OPEN, TO_CLOSE</param>
+            /// <param name="quantity">Negative to sell, positive to buy</param>
+            /// <returns></returns>
+            public OrderLeg(string symbol, AssetType assetType, Position position, decimal quantity)
+            {
+                CalculateInstruction(assetType, position, quantity);
+                this.quantity = Math.Abs(quantity);
+                this.instrument = new Order.Instrument() { symbol = symbol, assetType = assetType.ToString() };
+            }
+
+            /// <summary>
+            /// New Order Leg
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="assetType"></param>
+            /// <param name="instruction">BUY_TO_OPEN, SELL_TO_CLOSE, etc.</param>
+            /// <param name="quantity">Negative to sell, positive to buy</param>
+            /// <returns></returns>
+            public OrderLeg(string symbol, AssetType assetType, Instruction instruction, decimal quantity)
+            {
+                this.instruction = instruction.ToString();
+                this.quantity = Math.Abs(quantity);
+                this.instrument = new Order.Instrument() { symbol = symbol, assetType = assetType.ToString() };
+            }
+
+            private void CalculateInstruction(AssetType assetType, Position position, decimal quantity)
+            {
+                if (assetType == AssetType.OPTION)
+                {
+                    if (position == Position.TO_OPEN)
+                        this.instruction = (quantity > 0 ? Instruction.BUY_TO_OPEN : Instruction.SELL_TO_OPEN).ToString();
+                    else // TO_CLOSE
+                        this.instruction = (quantity > 0 ? Instruction.BUY_TO_CLOSE : Instruction.SELL_TO_CLOSE).ToString();
+                }
+                else
+                {
+                    if (position == Position.TO_OPEN)
+                        this.instruction = (quantity > 0 ? Instruction.BUY : Instruction.SELL_SHORT).ToString();
+                    else // TO_CLOSE
+                        this.instruction = (quantity > 0 ? Instruction.BUY_TO_COVER : Instruction.SELL).ToString();
+                }
             }
 
             public string instruction { get; set; }

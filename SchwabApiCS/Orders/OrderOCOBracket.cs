@@ -11,8 +11,8 @@ namespace SchwabApiCS
 {
     public partial class SchwabApi
     {
-        // ========== OCO (one cancels the other) Bracket =========================
-        // a limit order and a stop order.
+        // ========== OCO (one cancels the other) Bracket. =========================
+        // a limit order and a stop order.  Use to close a position
         // The first order to fill cancels the other.
         
 
@@ -24,7 +24,7 @@ namespace SchwabApiCS
         }
 
         /// <summary>
-        /// OCO Braket order: limit order + stop(market) order
+        /// OCO Braket order: to close limit order + stop(market) order
         /// Use to close a long order (use negative quantity to sell) or close a short position (use positive quantity to buy)
         /// </summary> 
         /// <param name="accountNumber"></param>
@@ -41,10 +41,10 @@ namespace SchwabApiCS
                                      Order.Session session, decimal quantity, decimal? limitPrice, decimal? stopPrice)
         {
             var limitOrder = new Order.ChildOrderStrategy(OrderType.LIMIT, OrderStrategyTypes.SINGLE, session, duration, limitPrice);
-            limitOrder.Add(new OrderLeg(symbol, assetType, quantity));
+            limitOrder.Add(new OrderLeg(symbol, assetType, Position.TO_CLOSE, quantity));
 
             var stopOrder = new Order.ChildOrderStrategy(OrderType.STOP, OrderStrategyTypes.SINGLE, session, duration, stopPrice);
-            stopOrder.Add(new OrderLeg(symbol, assetType, quantity));
+            stopOrder.Add(new OrderLeg(symbol, assetType, Position.TO_CLOSE, quantity));
 
             var ocoOrder = new Order() {
                 orderStrategyType = OrderStrategyTypes.OCO.ToString(),

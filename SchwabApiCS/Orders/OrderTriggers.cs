@@ -85,7 +85,7 @@ namespace SchwabApiCS
                 duration = Order.Duration.GOOD_TILL_CANCEL.ToString(),
                 price = closePrice
             };
-            limitOrder.Add(new Order.OrderLeg(symbol, assetType, -quantity));
+            limitOrder.Add(new Order.OrderLeg(symbol, assetType, Position.TO_CLOSE, -quantity));
 
             var stopOrder = new Order.ChildOrderStrategy()
             {
@@ -95,7 +95,7 @@ namespace SchwabApiCS
                 duration = Order.Duration.GOOD_TILL_CANCEL.ToString(),
                 stopPrice = stopPrice
             };
-            stopOrder.Add(new OrderLeg(symbol, assetType, -quantity));
+            stopOrder.Add(new OrderLeg(symbol, assetType, Position.TO_CLOSE, -quantity));
 
             var ocoOrder = new Order.ChildOrderStrategy()
             {
