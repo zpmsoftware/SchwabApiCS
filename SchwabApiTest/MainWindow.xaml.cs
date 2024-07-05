@@ -13,6 +13,7 @@ using System.Windows.Controls;
 using System.Diagnostics;
 using System.Windows.Navigation;
 using static SchwabApiCS.Streamer;
+using System.IO;
 
 namespace SchwabApiTest
 {
@@ -26,6 +27,7 @@ namespace SchwabApiTest
         private SchwabTokens schwabTokens;
         private const string title = "SchwabApiCS - Schwab API Library Test";
         private Streamer streamer;
+        private string resourcesPath;
 
         public MainWindow()
         {
@@ -34,8 +36,8 @@ namespace SchwabApiTest
                 InitializeComponent();
                 Title = title + ", version " + SchwabApi.Version;
 
-                // modify tokenDataFileName to where your tokens are located
-                var resourcesPath = System.IO.Directory.GetCurrentDirectory();
+                // modify tokenDataFileName to where your tokens and accountNumber for testing are located
+                resourcesPath = System.IO.Directory.GetCurrentDirectory();
                 var p = resourcesPath.IndexOf(@"\SchwabApiTest\");
                 if (p != -1)
                     resourcesPath = resourcesPath.Substring(0, p + 15);
@@ -196,6 +198,27 @@ namespace SchwabApiTest
         {
         }
 
+        /// <summary>
+        /// Get Account Number For Testing
+        /// by default uses first on in accounts list.
+        /// </summary>
+        /// <returns>account number</returns>
+        private string GetAccountNumberForTesting()
+        {
+            try
+            {
+                using (StreamReader sr = new StreamReader(resourcesPath + "AccountNumberForTesting.txt"))
+                {
+                    var accountNumber = sr.ReadToEnd(); // file should contain just the account number
+                    if (accountNumber != "")
+                        return accountNumber;
+                }
+            }
+            catch { }
+
+            return accounts[0].securitiesAccount.accountNumber; // use first in list
+        }
+
         public async Task<string> Test()
         {
             try  // see SchwabApi.cs for list of methods
@@ -206,8 +229,9 @@ namespace SchwabApiTest
                 accounts = schwabApi.GetAccounts(true);
                 var userPref = schwabApi.GetUserPreferences();
 
-                // var accountNumber = accounts[0].securitiesAccount.accountNumber; // account to use for testing.
-                var accountNumber = accounts.Where(r=> r.securitiesAccount.accountPreferences.nickName.Contains("401")).First().securitiesAccount.accountNumber; // account index to use for testing.
+                // by default uses first on in accounts list.
+                // add file AccountNumberForTesting.txt to use a different account for testing
+                var accountNumber = GetAccountNumberForTesting();
 
                 // Option Chain  =====================================
                 var ocp = new OptionChainParameters

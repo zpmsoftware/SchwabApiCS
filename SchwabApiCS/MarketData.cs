@@ -267,20 +267,21 @@ namespace SchwabApiCS
                 public string description { get; set; }
                 public string exchange { get; set; }
                 public string exchangeName { get; set; }
-                public bool isHardToBorrow { get; set; }
-                public bool isShortable { get; set; }
-                public decimal htbRate { get; set; }
+                public bool? isHardToBorrow { get; set; }
+                public bool? isShortable { get; set; }
+                public long? htbQuantity { get; set; }
+                public decimal? htbRate { get; set; }
 
-                public long futureExpirationDate { get; set; }
-                public bool futureIsActive { get; set; }
-                public decimal futureMultiplier { get; set; }
-                public string futurePriceFormat { get; set; }
-                public decimal futureSettlementPrice { get; set; }
-                public string futureTradingHours { get; set; }
-                public string product { get; set; }
+                public long? futureExpirationDate { get; set; }
+                public bool? futureIsActive { get; set; }
+                public decimal? futureMultiplier { get; set; }
+                public string? futurePriceFormat { get; set; }
+                public decimal? futureSettlementPrice { get; set; }
+                public string? futureTradingHours { get; set; }
+                public string? product { get; set; }
 
                 private DateTime? _futureExpirationDate = null;
-                public DateTime FutureExpirationDate  // local time
+                public DateTime? FutureExpirationDate  // local time
                 {
                     get { return ConvertDateOnce(futureExpirationDate, ref _futureExpirationDate); }
                     set { _futureExpirationDate = value; }
