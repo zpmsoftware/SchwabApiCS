@@ -22,7 +22,6 @@ namespace SchwabApiCS
 
         public LevelOneFuturesClass LevelOneFutures; // not ready yet
 
-        private static JsonSerializerSettings jsonSettings = new JsonSerializerSettings() { MissingMemberHandling = MissingMemberHandling.Error };
         private List<ServiceClass> ServiceList = new List<ServiceClass>();
         private UserPreferences.StreamerInfo streamerInfo;
         private SchwabApi schwabApi;

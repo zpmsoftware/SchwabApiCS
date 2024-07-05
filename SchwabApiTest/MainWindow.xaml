@@ -450,7 +450,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <Label  FontWeight="normal" FontSize="14">Level 1 Equities</Label>
+                    <Label  FontWeight="normal" FontSize="14">Level 1 Futures</Label>
 
                     <DataGrid Name="FuturesList" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
                                       MinHeight="200" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12">

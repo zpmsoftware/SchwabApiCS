@@ -149,6 +149,7 @@ namespace SchwabApiCS
         public class AccountInfo
         {
             public SecuritiesAccount securitiesAccount { get; set; }
+            public AggregatedBalance aggregatedBalance { get; set; }
 
             public override string ToString()
             {
@@ -156,142 +157,60 @@ namespace SchwabApiCS
                         + " " + securitiesAccount.accountPreferences.nickName
                        + "   $" + securitiesAccount.currentBalances.liquidationValue.ToString("N2");
             }
-        }
 
-        public class SecuritiesAccount
-        {
-            public string type { get; set; }
-            public string accountNumber { get; set; }
-            public long roundTrips { get; set; }
-            public bool isDayTrader { get; set; }
-            public bool isClosingOnlyRestricted { get; set; }
-            public bool pfcbFlag { get; set; }
-            public InitialBalances initialBalances { get; set; }
-            public CurrentBalances currentBalances { get; set; }
-            public ProjectedBalances projectedBalances { get; set; }
-            public List<Position>? positions { get; set; }
-
-            // userPreference and AccountNumberHash are not in the request response, but are added by the application
-            public UserPreferences.Account accountPreferences { get; set; }
-            public string accountNumberHash { get; set; }
-
-            public override string ToString()
+            public class SecuritiesAccount
             {
-                return accountNumber + " " + type + " $" + currentBalances.liquidationValue.ToString("N2");
-            }
+                public override string ToString()
+                {
+                    return accountNumber + " " + type + " $" + currentBalances.liquidationValue.ToString("N2");
+                }
 
-            public class ProjectedBalances
-            {
-                public decimal availableFunds { get; set; }
-                public decimal availableFundsNonMarginableTrade { get; set; }
-                public decimal buyingPower { get; set; }
-                public decimal dayTradingBuyingPower { get; set; }
-                public decimal dayTradingBuyingPowerCall { get; set; }
-                public decimal maintenanceCall { get; set; }
-                public decimal regTCall { get; set; }
-                public bool isInCall { get; set; }
-                public decimal stockBuyingPower { get; set; }
-            }
-
-            public class Position
-            {
-                public decimal shortQuantity { get; set; }
-                public decimal averagePrice { get; set; }
-                public decimal currentDayProfitLoss { get; set; }
-                public decimal currentDayProfitLossPercentage { get; set; }
-                public decimal longQuantity { get; set; }
-                public decimal settledLongQuantity { get; set; }
-                public decimal settledShortQuantity { get; set; }
-                public decimal agedQuantity { get; set; }
-                public Instrument instrument { get; set; }
-                public decimal marketValue { get; set; }
-                public decimal maintenanceRequirement { get; set; }
-                public decimal averageLongPrice { get; set; }
-                public decimal taxLotAverageLongPrice { get; set; }
-                public decimal longOpenProfitLoss { get; set; }
-                public decimal previousSessionLongQuantity { get; set; }
-                public decimal currentDayCost { get; set; }
-            }
-
-            public class Instrument
-            {
-                public string assetType { get; set; }
-                public string cusip { get; set; }
-                public string symbol { get; set; }
-                public string description { get; set; }
-                public decimal netChange { get; set; }
                 public string type { get; set; }
-                public DateTime? maturityDate { get; set; }
-                public decimal? variableRate { get; set; }
-            }
+                public string accountNumber { get; set; }
+                public long roundTrips { get; set; }
+                public bool isDayTrader { get; set; }
+                public bool isClosingOnlyRestricted { get; set; }
+                public bool pfcbFlag { get; set; }
+                public InitialBalances initialBalances { get; set; }
+                public CurrentBalances currentBalances { get; set; }
+                public ProjectedBalances projectedBalances { get; set; }
+                public List<Position>? positions { get; set; }
 
-            public class CurrentBalances
-            {
-                public decimal accruedInterest { get; set; }
-                public decimal cashBalance { get; set; }
-                public decimal cashReceipts { get; set; }
-                public decimal longOptionMarketValue { get; set; }
-                public decimal liquidationValue { get; set; }
-                public decimal longMarketValue { get; set; }
-                public decimal moneyMarketFund { get; set; }
-                public decimal savings { get; set; }
-                public decimal shortMarketValue { get; set; }
-                public decimal pendingDeposits { get; set; }
-                public decimal mutualFundValue { get; set; }
-                public decimal bondValue { get; set; }
-                public decimal shortOptionMarketValue { get; set; }
-                public decimal availableFunds { get; set; }
-                public decimal availableFundsNonMarginableTrade { get; set; }
-                public decimal buyingPower { get; set; }
-                public decimal buyingPowerNonMarginableTrade { get; set; }
-                public decimal dayTradingBuyingPower { get; set; }
-                public decimal equity { get; set; }
-                public decimal equityPercentage { get; set; }
-                public decimal longMarginValue { get; set; }
-                public decimal maintenanceCall { get; set; }
-                public decimal maintenanceRequirement { get; set; }
-                public decimal marginBalance { get; set; }
-                public decimal regTCall { get; set; }
-                public decimal shortBalance { get; set; }
-                public decimal shortMarginValue { get; set; }
-                public decimal sma { get; set; }
-            }
+                // userPreference and AccountNumberHash are not in the request response, but are added by the application
+                public UserPreferences.Account accountPreferences { get; set; }
+                public string accountNumberHash { get; set; }
 
-            public class InitialBalances
-            {
-                public decimal accruedInterest { get; set; }
-                public decimal availableFundsNonMarginableTrade { get; set; }
-                public decimal bondValue { get; set; }
-                public decimal buyingPower { get; set; }
-                public decimal cashBalance { get; set; }
-                public decimal cashAvailableForTrading { get; set; }
-                public decimal cashReceipts { get; set; }
-                public decimal dayTradingBuyingPower { get; set; }
-                public decimal dayTradingBuyingPowerCall { get; set; }
-                public decimal dayTradingEquityCall { get; set; }
-                public decimal equity { get; set; }
-                public decimal equityPercentage { get; set; }
-                public decimal liquidationValue { get; set; }
-                public decimal longMarginValue { get; set; }
-                public decimal longOptionMarketValue { get; set; }
-                public decimal longStockValue { get; set; }
-                public decimal maintenanceCall { get; set; }
-                public decimal maintenanceRequirement { get; set; }
-                public decimal margin { get; set; }
-                public decimal marginEquity { get; set; }
-                public decimal moneyMarketFund { get; set; }
-                public decimal mutualFundValue { get; set; }
-                public decimal regTCall { get; set; }
-                public decimal shortMarginValue { get; set; }
-                public decimal shortOptionMarketValue { get; set; }
-                public decimal shortStockValue { get; set; }
-                public decimal totalCash { get; set; }
-                public bool isInCall { get; set; }
-                public decimal pendingDeposits { get; set; }
-                public decimal marginBalance { get; set; }
-                public decimal shortBalance { get; set; }
-                public decimal accountValue { get; set; }
+                public record CurrentBalances(decimal accruedInterest, decimal cashBalance, decimal cashReceipts, decimal longOptionMarketValue,
+                          decimal liquidationValue, decimal longMarketValue, decimal moneyMarketFund, decimal savings,
+                          decimal shortMarketValue, decimal pendingDeposits, decimal mutualFundValue, decimal bondValue,
+                          decimal shortOptionMarketValue, decimal availableFunds, decimal availableFundsNonMarginableTrade,
+                          decimal buyingPower, decimal buyingPowerNonMarginableTrade, decimal dayTradingBuyingPower, decimal equity,
+                          decimal equityPercentage, decimal longMarginValue, decimal maintenanceCall, decimal maintenanceRequirement,
+                          decimal marginBalance, decimal regTCall, decimal shortBalance, decimal shortMarginValue, decimal sma,
+                          decimal? cashAvailableForTrading, decimal? cashAvailableForWithdrawal, decimal? cashCall,
+                          decimal? longNonMarginableMarketValue, decimal? totalCash, decimal? cashDebitCallValue, decimal? unsettledCash);
+                public record InitialBalances(decimal accruedInterest, decimal availableFundsNonMarginableTrade, decimal bondValue,
+                              decimal buyingPower, decimal cashBalance, decimal cashAvailableForTrading, decimal cashReceipts,
+                              decimal dayTradingBuyingPower, decimal dayTradingBuyingPowerCall, decimal dayTradingEquityCall, decimal equity,
+                              decimal equityPercentage, decimal liquidationValue, decimal longMarginValue, decimal longOptionMarketValue,
+                              decimal longStockValue, decimal maintenanceCall, decimal maintenanceRequirement, decimal margin,
+                              decimal marginEquity, decimal moneyMarketFund, decimal mutualFundValue, decimal regTCall, decimal shortMarginValue,
+                              decimal shortOptionMarketValue, decimal shortStockValue, decimal totalCash, bool isInCall, decimal pendingDeposits,
+                              decimal marginBalance, decimal shortBalance, decimal accountValue, decimal? cashAvailableForWithdrawal,
+                              decimal? unsettledCash, decimal? cashDebitCallValue);
+                public record Instrument(string assetType, string cusip, string symbol, string description, decimal netChange, string type,
+                              DateTime? maturityDate, decimal? variableRate);
+                public record Position(decimal shortQuantity, decimal averagePrice, decimal currentDayProfitLoss,
+                              decimal currentDayProfitLossPercentage, decimal longQuantity, decimal settledLongQuantity,
+                              decimal settledShortQuantity, decimal agedQuantity, Instrument instrument, decimal marketValue,
+                              decimal maintenanceRequirement, decimal averageLongPrice, decimal taxLotAverageLongPrice,
+                              decimal longOpenProfitLoss, decimal previousSessionLongQuantity, decimal currentDayCost);
+                public record ProjectedBalances(decimal availableFunds, decimal availableFundsNonMarginableTrade, decimal buyingPower,
+                              decimal dayTradingBuyingPower, decimal dayTradingBuyingPowerCall, decimal maintenanceCall, decimal regTCall,
+                              bool isInCall, decimal stockBuyingPower, decimal? cashAvailableForTrading, decimal? cashAvailableForWithdrawal);
             }
+            public record AggregatedBalance(decimal currentLiquidationValue, decimal liquidationValue);
+
         }
     }
 }

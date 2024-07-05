@@ -133,6 +133,7 @@ namespace SchwabApiCS
             public Reference reference { get; set; }
             public Regular regular { get; set; }
             public Extended extended { get; set; }
+            public string[] invalidSymbols { get; set; }
 
             public class Extended
             {
@@ -197,6 +198,7 @@ namespace SchwabApiCS
                 public int bidSize { get; set; }
                 public long bidTime { get; set; }
                 public decimal closePrice { get; set; }
+                public decimal futurePercentChange { get; set; }
                 public decimal highPrice { get; set; }
                 public string lastMICId { get; set; }
                 public decimal lastPrice { get; set; }
@@ -216,6 +218,19 @@ namespace SchwabApiCS
                 public long tradeTime { get; set; }
                 public long volatility { get; set; }
 
+                public int openInterest { get; set; } // futures
+                public bool quotedInSession { get; set; } // futures
+                public long settleTime { get; set; } // futures
+                public decimal tick { get; set; } // futures
+                public decimal tickAmount { get; set; } // futures
+
+
+                private DateTime? _settleTime = null;
+                public DateTime SettleTime  // local time
+                {
+                    get { return ConvertDateOnce(settleTime, ref _settleTime); }
+                    set { _settleTime = value; }
+                }
 
                 private DateTime? _bidTime = null;
                 public DateTime BidTime  // local time
@@ -255,6 +270,21 @@ namespace SchwabApiCS
                 public bool isHardToBorrow { get; set; }
                 public bool isShortable { get; set; }
                 public decimal htbRate { get; set; }
+
+                public long futureExpirationDate { get; set; }
+                public bool futureIsActive { get; set; }
+                public decimal futureMultiplier { get; set; }
+                public string futurePriceFormat { get; set; }
+                public decimal futureSettlementPrice { get; set; }
+                public string futureTradingHours { get; set; }
+                public string product { get; set; }
+
+                private DateTime? _futureExpirationDate = null;
+                public DateTime FutureExpirationDate  // local time
+                {
+                    get { return ConvertDateOnce(futureExpirationDate, ref _futureExpirationDate); }
+                    set { _futureExpirationDate = value; }
+                }
             }
 
             public class Regular

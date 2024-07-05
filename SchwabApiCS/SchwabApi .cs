@@ -3,7 +3,8 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-// Version v6.0.0 - released 2024-07-03
+// Version 6.0.1 - released 2024-07-04
+// Version 6.0.0 - released 2024-07-03
 // Version 05 - released 2024-06-28
 // Version 04 - released 2024-06-20
 // Version 03 - released 2024-06-13
@@ -13,6 +14,7 @@ using System.Text;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using System.Linq.Expressions;
 
 namespace SchwabApiCS
 {
@@ -21,7 +23,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const int Version = 6.0.0;
+        public const string Version = "6.0.1";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -95,6 +97,7 @@ namespace SchwabApiCS
         internal static SchwabTokens schwabTokens;
         internal IList<AccountNumber> accountNumberHashs; // load once
         const string utcDateFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
+        internal static JsonSerializerSettings jsonSettings = new JsonSerializerSettings() { MissingMemberHandling = MissingMemberHandling.Error };
 
         /// <summary>
         /// Schwab API class
@@ -419,7 +422,16 @@ namespace SchwabApiCS
                 if (typeof(T) == typeof(String))
                     data = (T)Convert.ChangeType(responseString, typeof(T)); // return json string unchanged
                 else
-                    data = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(responseString);
+                {
+                    try
+                    {
+                        data = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(responseString, jsonSettings);
+                    }
+                    catch (Exception ex)
+                    {
+                        data = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(responseString);
+                    }
+                }
 
                 if (data == null)
                     return new ApiResponseWrapper<T>(default, true, (int)response.StatusCode, response.ReasonPhrase + ", null JsonConvert.", response);

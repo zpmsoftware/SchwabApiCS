@@ -32,7 +32,7 @@ namespace SchwabApiTest
             try
             {
                 InitializeComponent();
-                Title = title + ", version " + SchwabApi.Version.ToString();
+                Title = title + ", version " + SchwabApi.Version;
 
                 // modify tokenDataFileName to where your tokens are located
                 var resourcesPath = System.IO.Directory.GetCurrentDirectory();
@@ -47,6 +47,7 @@ namespace SchwabApiTest
                     SchwabApiCS_WPF.ApiAuthorize.Open(tokenDataFileName);
                     schwabTokens = new SchwabTokens(tokenDataFileName); // reload changes
                 }
+
                 AppStart();
             }
             catch (Exception ex)
