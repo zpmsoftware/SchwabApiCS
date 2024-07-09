@@ -3,6 +3,7 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 7.0.0 - released 2024-07-09?
 // Version 6.0.2 - released 2024-07-05
 // Version 6.0.1 - released 2024-07-04
 // Version 6.0.0 - released 2024-07-03
@@ -24,7 +25,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const string Version = "6.0.2";
+        public const string Version = "7.0.0";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -84,8 +85,22 @@ namespace SchwabApiCS
          * INSTRUMENTS                  Instruments.cs
          *   GetInstrumentsBySymbol()   GET /instruments                             Get Instruments by symbols and projections.
          *   GetInstrumentsByCusipId()  GET /instruments/{cusip_id}                  Get Instrument by specific cusip
+         *   
+         * ========== STREAMERS  ====================================================================================  
+         * AccountActivities
+         * LevelOneEquities
+         * LevelOneOptions
+         * LevelOneFutures
+         * LevelOneFuturesOptions -- Not implemented by Schwab yet 
+         * LevelOneForexes
+         * NasdaqBooks -- level 2 Nasdaq
+         * NyseBooks -- level 2 Nyse
+         * OptionsBooks -- level 2 options
+         * ChartEquities -- minute candles stream
+         * ChartFutures -- minute candles stream
+         * ScreenerEquities -- Not implemented by Schwab yet
+         * ScreenerOptions  -- Not implemented by Schwab yet
          */
-
 
         public UserPreferences? userPreferences; // load once
 
@@ -507,6 +522,35 @@ namespace SchwabApiCS
                     return t;
             }
             throw new SchwabApiException("Invalid asset type '" + enumStringValue + "'");
+        }
+
+        /// <summary>
+        /// Format Symbol for Display
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public static string SymbolDisplay(string symbol)
+        {
+            if (symbol.Contains(' ')) // parse option symbol
+            {
+                var s = symbol.Substring(0, 6) + "20" + symbol.Substring(6, 2) + "-" + symbol.Substring(8, 2) + "-" + symbol.Substring(10, 2) +
+                        (symbol[12] == 'C' ? " Call " : " Put ") + symbol.Substring(13, 5).TrimStart('0') + "." +
+                        (symbol[20] == '0' ? symbol.Substring(18,2) : symbol.Substring(18));
+                return s;
+
+            }
+            return symbol;
+        }
+
+        /// <summary>
+        /// Check to see if too many symbols
+        /// </summary>
+        /// <param name="symbols"></param>
+        /// <param name="maxCount"></param>
+        /// <returns>true is too many</returns>
+        public static bool SymbolMaxCheck(string symbols, int maxCount)
+        {
+            return (symbols.Length - symbols.Replace(",", "").Length >= maxCount);
         }
 
         // =========== Schwab Api Exceptions =========================================================================

@@ -21,15 +21,15 @@ namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class AccountActivityClass : ServiceClass
+        public class AccountActivityService : Service
         {
             public delegate void AccountActivityCallback(List<AccountActivity> data);
 
             private List<AccountActivity> Data = new List<AccountActivity>();
             private AccountActivityCallback? Callback = null;
 
-            public AccountActivityClass(Streamer streamer)
-                : base(streamer, Streamer.Services.ACCT_ACTIVITY)
+            public AccountActivityService(Streamer streamer, string reference)
+                : base(streamer, Service.Services.ACCT_ACTIVITY, reference)
             {
             }
 
@@ -64,31 +64,9 @@ namespace SchwabApiCS
                 Callback = callback;
             }
 
-            /// <summary>
-            /// Account Activity response
-            /// </summary>
-            /// <param name="response"></param>
-            /// <exception cref="Exception"></exception>
-            internal override void ProcessResponse(ResponseMessage.Response response)
+            internal override void ProcessResponseSUBS(ResponseMessage.Response response)
             {
-                if (response.content.code != 0)
-                {
-                    throw new Exception(string.Format(
-                        "streamer ACCT_ACTIVITY {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg));
-                }
-
-                switch (response.command)
-                {
-                    case "SUBS":
-                        break;
-                    case "ADD":
-                        break;
-                    case "UNSUBS":
-                        break;
-
-                    default:
-                        break;
-                }
+                // do nothing
             }
 
             internal override void ProcessData(DataMessage.DataItem d, dynamic content)
@@ -128,6 +106,10 @@ namespace SchwabApiCS
                     Callback(Data2);
                 } else
                     Callback(Data); // callback to application with updated values
+            }
+
+            internal override void RemoveFromData(string symbol) // DO NOTHING FOR THIS CLASS
+            {
             }
         }
 

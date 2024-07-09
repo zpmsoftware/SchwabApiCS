@@ -8,7 +8,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Data;
 using System.Text.Json;
-//using static SchwabApiCS.SchwabApi.MoverResult;
 
 namespace SchwabApiCS
 {
@@ -43,6 +42,9 @@ namespace SchwabApiCS
         /// <returns>Task<List<Quote>></returns>
         public async Task<ApiResponseWrapper<List<Quote>>> GetQuotesAsync(string symbols, bool indicative, string? fields = null)
         {
+            if (SymbolMaxCheck(symbols, 300))
+                return new ApiResponseWrapper<List<Quote>>(default, true, 900, "Too many symbols, maximum is 300");
+
             var url = MarketDataBaseUrl + "/quotes?symbols=" + symbols + "&indicative=" + indicative.ToString().ToLower();
             if (fields != null)
                 url += "&fields=" + fields;
@@ -68,6 +70,9 @@ namespace SchwabApiCS
         /// <returns>Task<List<Quote>></returns>
         public async Task<ApiResponseWrapper<List<Quote>>> GetQuotesAsync(string symbols, string? fields = null)
         {
+            if (SymbolMaxCheck(symbols, 300))
+                return new ApiResponseWrapper<List<Quote>>(default, true, 900, "Too many symbols, maximum is 300");
+
             var url = MarketDataBaseUrl + "/quotes?symbols=" + symbols;
             if (fields != null)
                 url += "&fields=" + fields;

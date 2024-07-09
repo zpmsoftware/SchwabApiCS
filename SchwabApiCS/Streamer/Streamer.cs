@@ -9,35 +9,59 @@ using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
 using System.Security.Authentication;
 
-
 // https://json2csharp.com/
 namespace SchwabApiCS
 {
     public partial class Streamer
     {
         public bool IsLoggedIn {  get { return isLoggedIn; } }
-        public LevelOneEquitiesClass LevelOneEquities;
-        public LevelOneOptionsClass LevelOneOptions;
-        public AccountActivityClass AccountActivities;
+        public LevelOneEquitiesService LevelOneEquities;
+        public LevelOneOptionsService LevelOneOptions;
+        public AccountActivityService AccountActivities;
+        public LevelOneFuturesService LevelOneFutures;
+        // public LevelOneFuturesOptionsService LevelOneFutures; -- Not implemented by Schwab yet 
+        public LevelOneForexesService LevelOneForexes;
 
-        public LevelOneFuturesClass LevelOneFutures; // not ready yet
+        public NasdaqBookService NasdaqBooks;
+        public NyseBookService NyseBooks;
+        public OptionsBookService OptionsBooks;
 
-        private List<ServiceClass> ServiceList = new List<ServiceClass>();
+        public ChartEquitiesService ChartEquities;
+        public ChartFuturesService ChartFutures;
+        //public ScreenerEquitiesService ScreenerEquities; -- Not implemented by Schwab yet
+        //public ScreenerOptionsService ScreenerOptions;  -- Not implemented by Schwab yet
+
+        private List<Service> ServiceList = new List<Service>();
         private UserPreferences.StreamerInfo streamerInfo;
         private SchwabApi schwabApi;
         private WebSocket4Net.WebSocket websocket;
         private long requestid = 0;
         internal bool isLoggedIn = false;
         private List<string> requestQueue = new List<string>();
+        internal static long timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  local time difference from eastern time.
+                    (TimeZoneInfo.FindSystemTimeZoneById(TimeZone.CurrentTimeZone.StandardName).GetUtcOffset(DateTime.Now).Hours -
+                     TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time").GetUtcOffset(DateTime.Now).Hours);
 
         public Streamer(SchwabApi schwabApi)
         {
-            ServiceList.Add(LevelOneEquities = new LevelOneEquitiesClass(this));
-            ServiceList.Add(LevelOneOptions = new LevelOneOptionsClass(this));
-            ServiceList.Add(LevelOneFutures = new LevelOneFuturesClass(this));
-            ServiceList.Add(AccountActivities = new AccountActivityClass(this));
+            ServiceList.Add(LevelOneEquities = new LevelOneEquitiesService(this, "LevelOneEquities"));
+            ServiceList.Add(LevelOneOptions = new LevelOneOptionsService(this, "LevelOneOptions"));
+            ServiceList.Add(LevelOneFutures = new LevelOneFuturesService(this, "LevelOneFutures"));
+            // ServiceList.Add(LevelOneFuturesOptions = new LevelOneFuturesOptionsService(this, "LevelOneFuturesOptions")); -- Not implemented by Schwab yet
+            ServiceList.Add(LevelOneForexes = new LevelOneForexesService(this, "LevelOneForexes"));
 
-            ServiceList.Add(new AdminClass(this));
+            ServiceList.Add(NyseBooks = new NyseBookService(this, "NyseBooks"));
+            ServiceList.Add(NasdaqBooks = new NasdaqBookService(this, "NasdaqBooks"));
+            ServiceList.Add(OptionsBooks = new OptionsBookService(this, "OptionsBooks"));
+
+            ServiceList.Add(ChartEquities = new ChartEquitiesService(this, "ChartEquities"));
+            ServiceList.Add(ChartFutures = new ChartFuturesService(this, "ChartFutures"));
+
+            //ServiceList.Add(ScreenerEquities = new ScreenerEquitiesService(this, "ScreenerEquities")); -- Not implemented by Schwab yet
+            //ServiceList.Add(ScreenerOptions = new ScreenerOptionsService(this, "ScreenerOptions")); -- Not implemented by Schwab yet
+
+            ServiceList.Add(AccountActivities = new AccountActivityService(this, "AccountActivities"));
+            ServiceList.Add(new AdminService(this, "Admin"));
 
             this.schwabApi = schwabApi;
             this.streamerInfo = schwabApi.userPreferences.streamerInfo[0]; ;
@@ -188,7 +212,7 @@ namespace SchwabApiCS
             var request = new StreamerRequests.Request()
             {
                 requestid = (++requestid).ToString(),
-                service = Services.ADMIN.ToString(),
+                service = Service.Services.ADMIN.ToString(),
                 command = Commands.LOGOUT.ToString(),
                 SchwabClientCustomerId = this.streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = this.streamerInfo.schwabClientCorrelId,
@@ -202,7 +226,7 @@ namespace SchwabApiCS
         /// <param name="service">service name</param>
         /// <param name="symbols">comma separated list of symbols</param>
         /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquities.Fields</param>
-        private void ServiceRequest(Services service, string symbols, string fields)
+        private void ServiceRequest(Service.Services service, string symbols, string fields)
         {
             var request = new StreamerRequests.Request
             {
@@ -226,7 +250,7 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="symbols"></param>
         /// <exception cref="SchwabApiException"></exception>
-        private void ServiceAdd(Services service, string symbols, List<string> activeSymbols)
+        private void ServiceAdd(Service.Services service, string symbols, List<string> activeSymbols)
         {
             var list = symbols.ToUpper().Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
             symbols = "";
@@ -264,7 +288,7 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="symbols"></param>
         /// <exception cref="SchwabApiException"></exception>
-        private void ServiceRemove(Services service, string symbols)
+        private void ServiceRemove(Service.Services service, string? symbols = null)
         {
             var request = new StreamerRequests.Request
             {
@@ -273,11 +297,15 @@ namespace SchwabApiCS
                 command = "UNSUBS",
                 SchwabClientCustomerId = streamerInfo.schwabClientCustomerId,
                 SchwabClientCorrelId = streamerInfo.schwabClientCorrelId,
-                parameters = new StreamerRequests.Parameters
+            };
+            if (!string.IsNullOrEmpty(symbols))
+            {
+                request.parameters = new StreamerRequests.Parameters
                 {
                     keys = symbols.Substring(1)
-                }
-            };
+                };
+            }
+
             var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
             SendRequest(req);
         }
@@ -288,7 +316,7 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="fields"></param>
         /// <exception cref="SchwabApiException"></exception>
-        private void ServiceView(Services service, string fields)
+        private void ServiceView(Service.Services service, string fields)
         {
             var request = new StreamerRequests.Request
             {
@@ -304,24 +332,6 @@ namespace SchwabApiCS
             };
             var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
             SendRequest(req);
-        }
-
-        internal enum Services
-        {                             // Delevery Type  Description
-            ADMIN,                    //
-            LEVELONE_EQUITIES,        // Change         Level 1 Equities Change
-            LEVELONE_OPTIONS,         // Change         Level 1 Options Change
-            LEVELONE_FUTURES,         // Change         Level 1 Futures Change
-            LEVELONE_FUTURES_OPTIONS, // Change         Level 1 Futures Options Change
-            LEVELONE_FOREX,           // Change         Level 1 Forex Change
-            NYSE_BOOK,                // Whole          Level Two book for Equities Whole
-            NASDAQ_BOOK,              // Whole          Level Two book for Equities Whole
-            OPTIONS_BOOK,             // Whole          Level Two book for Options Whole
-            CHART_EQUITY,             // All Sequence   Chart candle for Equities All Sequence
-            CHART_FUTURES,            // All Sequence   Chart candle for Futures All Sequence
-            SCREENER_EQUITY,          // Whole          Advances and Decliners for Equities Whole
-            SCREENER_OPTION,          // Whole          Advances and Decliners for Options Whole
-            ACCT_ACTIVITY             // All Sequence   Get account activity information such as order fills, etc
         }
 
         enum Commands 
@@ -349,7 +359,10 @@ namespace SchwabApiCS
                 public string command { get; set; }
                 public string SchwabClientCustomerId { get; set; }
                 public string SchwabClientCorrelId { get; set; }
-                public Parameters parameters { get; set; } = new Parameters();
+
+                [DefaultValue(null)]
+                [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+                public Parameters? parameters { get; set; } = new Parameters();
             }
 
             public class Parameters
@@ -448,32 +461,6 @@ namespace SchwabApiCS
                 [JsonProperty("1")]
                 public double _1 { get; set; }
                 */
-            }
-        }
-
-        public abstract class ServiceClass
-        {
-            protected Streamer streamer;
-            public string ServiceName { get; init; }
-            internal ServiceClass(Streamer streamer, Streamer.Services service)
-            {
-                this.streamer = streamer;
-                this.ServiceName = service.ToString();
-            }
-
-            internal virtual void ProcessResponse(ResponseMessage.Response response)
-            {
-                throw new Exception("Streamer service " + ServiceName + " not expecting Response Message: " + response.ToString());
-            }
-
-            internal virtual void ProcessData(DataMessage.DataItem d, dynamic content)
-            {
-                throw new Exception("Streamer service " + ServiceName + " not expecting Data Message: " + d.ToString());
-            }
-
-            internal virtual void Notify(NotifyMessage.Notify notify)
-            {
-                throw new Exception("Streamer service " + ServiceName + " not expecting Notify Message: " + notify.ToString());
             }
         }
 

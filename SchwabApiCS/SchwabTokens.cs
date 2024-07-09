@@ -48,6 +48,7 @@ namespace SchwabApiCS
         public System.Uri AuthorizeUri
         {
             get { return new System.Uri(baseUrl + "/authorize?client_id=" + tokens.AppKey + "&redirect_uri="+ tokens.Redirect_uri); }
+            // get { return new System.Uri(baseUrl + "/authorize?response_type=code&client_id=" + tokens.AppKey + "&redirect_uri=" + tokens.Redirect_uri); }
         }
 
         /// <summary>

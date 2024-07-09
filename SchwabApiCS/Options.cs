@@ -91,18 +91,33 @@ namespace SchwabApiCS
 
             try
             {
+                OptionChain? oc;
+                OptionChain.Option? option;
                 var j = JObject.Parse(result.Data);
                 var jc = j["callExpDateMap"];
                 var jp = j["putExpDateMap"];
 
                 j.Remove("callExpDateMap");
                 j.Remove("putExpDateMap");
-                var oc = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain>(j.ToString());
+                try
+                {
+                    oc = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain>(j.ToString(), jsonSettings);
+                }
+                catch (Exception ex)
+                {
+                    oc = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain>(j.ToString());
+                }
 
                 foreach (var eDate in jc) { // expiration date
                     foreach (var strike in eDate) // strike
                     {
-                        var option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
+                        try
+                        {
+                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString(), jsonSettings);
+                        }
+                        catch (Exception ex) {
+                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
+                        }
                         oc.calls.Add(option);
                     }
                 }
@@ -111,7 +126,14 @@ namespace SchwabApiCS
                 { // expiration date
                     foreach (var strike in eDate) // strike
                     {
-                        var option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
+                        try
+                        {
+                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString(), jsonSettings);
+                        }
+                        catch (Exception ex)
+                        {
+                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
+                        }
                         oc.puts.Add(option);
                     }
                 }

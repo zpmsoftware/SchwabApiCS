@@ -18,33 +18,20 @@ namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class AdminClass : ServiceClass
+        public class AdminService : Service
         {
-            public AdminClass(Streamer streamer)
-                : base(streamer, Streamer.Services.ADMIN)
+            public AdminService(Streamer streamer, string reference)
+                : base(streamer, Service.Services.ADMIN, reference)
             {
             }
 
-            internal override void ProcessResponse(ResponseMessage.Response r)
+            internal override void ProcessResponseLOGIN(ResponseMessage.Response response)
             {
-                switch (r.command)
+                streamer.isLoggedIn = true;
+                while (streamer.requestQueue.Count > 0)
                 {
-                    case "LOGIN":
-                        if (r.content.code == 0)
-                        {
-                            streamer.isLoggedIn = true;
-                            while (streamer.requestQueue.Count > 0)
-                            {
-                                streamer.websocket.Send(streamer.requestQueue[0]);
-                                streamer.requestQueue.RemoveAt(0);
-                            }
-                        }
-                        else
-                            throw new Exception("streamer login failed.");
-                        break;
-
-                    default:
-                        break;
+                    streamer.websocket.Send(streamer.requestQueue[0]);
+                    streamer.requestQueue.RemoveAt(0);
                 }
             }
 
@@ -59,6 +46,11 @@ namespace SchwabApiCS
                     default:
                         break;
                 }
+            }
+
+
+            internal override void RemoveFromData(string symbol) // nothing for this class
+            {
             }
         }
     }

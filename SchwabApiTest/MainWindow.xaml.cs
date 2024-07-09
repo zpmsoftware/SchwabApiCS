@@ -97,7 +97,7 @@ namespace SchwabApiTest
             // application code starts here =============================
 
             // for the Class Converter
-            foreach (var st in Streamer.AccountActivityClass.AccountActivityClasses)
+            foreach (var st in Streamer.AccountActivityService.AccountActivityClasses)
             {
                 var name = (st.Name == "ActivityObject") ? "New Activity Class" : st.Name;
                 cbConvertToClass.Items.Add(new ComboBoxItem() { Content = name });
@@ -194,7 +194,54 @@ namespace SchwabApiTest
             });
         }
 
-        public void AccountActivityStreamerCallback(List<Streamer.AccountActivity> accountActivity)
+        public void AccountActivityStreamerCallback(List<Streamer.AccountActivity> list)
+        {
+        }
+
+        public void NasdaqBookStreamerCallback(List<Streamer.Book> list)
+        {
+        }
+
+        public void NyseBookStreamerCallback(List<Streamer.Book> list)
+        {
+        }
+
+        public void OptionsBookStreamerCallback(List<Streamer.Book> list)
+        {
+        }
+
+        public void ChartEquitiesStreamerCallback(List<Streamer.ChartEquity> list)
+        {
+            OptionsList.Dispatcher.Invoke(() =>
+            {
+                ChartEquitiesList.ItemsSource = null; // to force refresh
+                ChartEquitiesList.ItemsSource = list.OrderBy(r => r.Symbol).ToList();
+            });
+        }
+
+        public void ChartFuturesStreamerCallback(List<Streamer.ChartFuture> list)
+        {
+            OptionsList.Dispatcher.Invoke(() =>
+            {
+                ChartFuturesList.ItemsSource = null; // to force refresh
+                ChartFuturesList.ItemsSource = list.OrderBy(r => r.Symbol).ToList();
+            });
+        }
+
+        public void LevelOneForexesStreamerCallback(List<Streamer.LevelOneForex> list)
+        {
+            OptionsList.Dispatcher.Invoke(() =>
+            {
+                ForexList.ItemsSource = null; // to force refresh
+                ForexList.ItemsSource = list.OrderBy(r => r.Symbol).ToList();
+            });
+        }
+
+        public void ScreenerEquitiesStreamerCallback(List<Streamer.Screener> list)
+        {
+        }
+
+        public void ScreenerOptionsStreamerCallback(List<Streamer.Screener> list)
         {
         }
 
@@ -244,21 +291,27 @@ namespace SchwabApiTest
 
                 // start streamer services  =====================================
                 streamer = new Streamer(schwabApi);
+
                 streamer.LevelOneEquities.Request("SPY,IWM,GLD,NVDA", Streamer.LevelOneEquity.CommonFields, StreamerCallback);
                 streamer.LevelOneEquities.Add("AAPL");
-                // streamer.LevelOneEquities.Remove("AAPL"); - works
+                //streamer.LevelOneEquities.Remove("AAPL"); - works
                 // streamer.LevelOneEquities.View(Streamer.LevelOneEquities.AllFields); -- not working yet
-                
-                streamer.LevelOneFutures.Request("/ES,/CL,/GC,/SI", LevelOneFuture.CommonFields, FuturesStreamerCallback);
 
-                var optionSymbols = string.Join(',', aaplOptions.calls.Select(a => a.symbol).ToArray());
+                streamer.LevelOneFutures.Request("/ES,/CL,/GC,/SI", LevelOneFuture.CommonFields, FuturesStreamerCallback);
+                streamer.LevelOneForexes.Request("USD/JPY", LevelOneForex.AllFields, LevelOneForexesStreamerCallback);
+
+                streamer.ChartEquities.Request("AAPL", ChartEquity.AllFields, ChartEquitiesStreamerCallback);
+                streamer.ChartFutures.Request("/ES", ChartFuture.AllFields, ChartFuturesStreamerCallback);
+
+                var optionSymbols = string.Join(',', aaplOptions.calls.Select(a => a.symbol).Take(10).ToArray());
+                
                 streamer.LevelOneOptions.Request(optionSymbols, LevelOneOption.CommonFields, OptionsStreamerCallback);
 
+                streamer.NasdaqBooks.Request("AAPL", Book.AllFields, NasdaqBookStreamerCallback);
+                streamer.NyseBooks.Request("A", Book.AllFields, NyseBookStreamerCallback);
+                streamer.OptionsBooks.Request(optionSymbols, Book.AllFields, OptionsBookStreamerCallback);
+
                 streamer.AccountActivities.Request(AccountActivityStreamerCallback);
-
-                // streamer.FuturesRequest("/ESN24", LevelOneOptions.CommonFields, FuturesStreamerCallback); - not available yet?  accepts call, no results
-
-
 
                 // Get Quote =====================================
                 var taskAppl = schwabApi.GetQuoteAsync("AAPL");
@@ -267,6 +320,8 @@ namespace SchwabApiTest
                 QuoteTitle.Content = "Quote: AAPL";
                 Quote.Text = JsonConvert.SerializeObject(applQuote, Formatting.Indented); // display in MainWindow
                 TaskJson.Text = JsonConvert.SerializeObject(taskAppl, Formatting.Indented); // display in MainWindow
+
+                var quotes = schwabApi.GetQuotes("IWM,SPY,USO", true, "quote");
 
 
                 // uncomment lines below for more testing  ===========================================
@@ -329,7 +384,6 @@ namespace SchwabApiTest
             }
             return "";
         }
-
 
         // best if this is done after hours, in case order actually fills.
         public void TestOrders(string accountNumber, SchwabApiCS.SchwabApi.Quote.QuotePrice applQuote)

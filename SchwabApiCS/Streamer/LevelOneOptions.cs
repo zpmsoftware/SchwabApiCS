@@ -5,34 +5,22 @@
 
 using System;
 using Newtonsoft.Json;
-using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
-using static SchwabApiCS.Streamer.StreamerRequests;
-using System.Security.Authentication;
-using System.Windows.Controls;
-using static SchwabApiCS.SchwabApi.Transaction;
-using System.Diagnostics;
-using System.Windows.Media;
-using System.Xml.Linq;
-using static SchwabApiCS.SchwabApi.OptionChain;
-using System.Reflection;
-using System.Threading.Tasks;
-using static SchwabApiCS.Streamer;
+
 
 namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class LevelOneOptionsClass : ServiceClass
+        public class LevelOneOptionsService : Service
         {
             public delegate void LevelOneOptionsCallback(List<LevelOneOption> data);
 
             private List<LevelOneOption> Data = new List<LevelOneOption>();
             private LevelOneOptionsCallback? Callback = null;
-            private List<string> ActiveSymbols = new List<string>(); // only accept streamed data from this list
 
-            public LevelOneOptionsClass(Streamer streamer)
-                : base(streamer, Streamer.Services.LEVELONE_OPTIONS)
+            public LevelOneOptionsService(Streamer streamer, string reference)
+                : base(streamer, Service.Services.LEVELONE_OPTIONS, reference)
             {
             }
 
@@ -57,10 +45,8 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void Add(string symbols)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneOptions.Request() must happen before a LevelOneOptions.Add().");
-
-                streamer.ServiceAdd(Services.LEVELONE_OPTIONS, symbols, ActiveSymbols);
+                CallbackCheck(Callback, "Add");
+                streamer.ServiceAdd(service, symbols, ActiveSymbols);
             }
 
             /// <summary>
@@ -70,25 +56,11 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void Remove(string symbols)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneOptions.Request() must happen before a LevelOneOptions.Remove().");
+                CallbackCheck(Callback, "Remove");
 
-                var list = symbols.Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
-                symbols = "";
-                foreach (var s in list)
-                {
-                    if (ActiveSymbols.Contains(s))
-                    {
-                        ActiveSymbols.Remove(s);
-                        symbols += "," + s;
-                        var i = Data.Where(r => r.key == s).SingleOrDefault();
-                        if (i != null)
-                            Data.Remove(i); // don't process anymore
-                    }
-                }
-
-                if (symbols.Length > 0)
-                    streamer.ServiceRemove(Services.LEVELONE_OPTIONS, symbols);
+                symbols = ActiveSymbolsRemove(symbols);
+                streamer.ServiceRemove(service, symbols);
+                Callback(Data);
             }
 
             /// <summary>
@@ -98,38 +70,13 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void View(string fields)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneOptions.Request() must happen before a LevelOneOptions.View().");
-
-                streamer.ServiceView(Services.LEVELONE_OPTIONS, fields);
+                CallbackCheck(Callback, "View");
+                streamer.ServiceView(service, fields);
             }
 
-            /// <summary>
-            /// process received level 1 options data
-            /// </summary>
-            /// <param name="response"></param>
-            /// <exception cref="Exception"></exception>
-            internal override void ProcessResponse(ResponseMessage.Response response)
+            internal override void ProcessResponseSUBS(ResponseMessage.Response response)
             {
-                if (response.content.code != 0)
-                {
-                    throw new Exception(string.Format(
-                        "streamer LEVELONE_OPTIONS {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg));
-                }
-
-                switch (response.command)
-                {
-                    case "SUBS":
-                        Data = new List<LevelOneOption>(); // clear for new service
-                        break;
-                    case "ADD":
-                        break;
-                    case "UNSUBS":
-                        break;
-
-                    default:
-                        break;
-                }
+                Data = new List<LevelOneOption>(); // clear for new service
             }
 
             internal override void ProcessData(DataMessage.DataItem d, dynamic content)
@@ -167,6 +114,13 @@ namespace SchwabApiCS
                     quote.UpdateProperties(content[i]);
                 }
                 Callback(Data); // callback to application with updated values
+            }
+
+            internal override void RemoveFromData(string symbol)
+            {
+                var i = Data.Where(r => r.key == symbol).SingleOrDefault();
+                if (i != null)
+                    Data.Remove(i); // don't process anymore
             }
         }
 

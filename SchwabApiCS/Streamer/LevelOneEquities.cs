@@ -5,28 +5,21 @@
 
 using System;
 using Newtonsoft.Json;
-using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
-using static SchwabApiCS.Streamer.StreamerRequests;
-using System.Security.Authentication;
-using System.Windows.Controls;
-using static SchwabApiCS.Streamer.LevelOneEquity;
-using static SchwabApiCS.Streamer.ResponseMessage;
-using Accessibility;
+
 
 namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class LevelOneEquitiesClass : ServiceClass
+        public class LevelOneEquitiesService : Service
         {
             public delegate void EquitiesCallback(List<LevelOneEquity> data);
             private List<LevelOneEquity> Data = new List<LevelOneEquity>();
             private EquitiesCallback? Callback = null;
-            private List<string> ActiveSymbols = new List<string>(); // only accept streamed data from this list
 
-            public LevelOneEquitiesClass(Streamer streamer)
-                : base(streamer, Streamer.Services.LEVELONE_EQUITIES)
+            public LevelOneEquitiesService(Streamer streamer, string reference)
+                : base(streamer, Service.Services.LEVELONE_EQUITIES, reference)
             {
             }
 
@@ -38,8 +31,8 @@ namespace SchwabApiCS
             /// <param name="callback">method to call whenever values change</param>
             public void Request(string symbols, string fields, EquitiesCallback callback)
             {
-                ActiveSymbols = symbols.ToUpper().Split(',').Select(r => r.Trim()).Distinct().ToList(); // new list
-                streamer.ServiceRequest(Services.LEVELONE_EQUITIES, symbols, fields);
+                SetActiveSymbols(symbols);
+                streamer.ServiceRequest(service, symbols, fields);
                 Callback = callback;
             }
 
@@ -50,10 +43,8 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void Add(string symbols)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.Add().");
-
-                streamer.ServiceAdd(Services.LEVELONE_EQUITIES, symbols, ActiveSymbols);
+                CallbackCheck(Callback, "Add");
+                streamer.ServiceAdd(service, symbols, ActiveSymbols);
             }
 
             /// <summary>
@@ -63,25 +54,10 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void Remove(string symbols)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.Remove().");
-
-                var list = symbols.Split(',').Select(r => r.Trim()).Distinct().ToList(); // add list
-                symbols = "";
-                foreach (var s in list)
-                {
-                    if (ActiveSymbols.Contains(s))
-                    {
-                        ActiveSymbols.Remove(s);
-                        symbols += "," + s;
-                        var i = Data.Where(r => r.key == s).SingleOrDefault();
-                        if (i != null)
-                            Data.Remove(i); // don't process anymore
-                    }
-                }
-
-                if (symbols.Length > 0)
-                    streamer.ServiceRemove(Services.LEVELONE_EQUITIES, symbols);
+                CallbackCheck(Callback, "Remove");
+                symbols = ActiveSymbolsRemove(symbols);
+                streamer.ServiceRemove(service, symbols);
+                Callback(Data);
             }
 
             /// <summary>
@@ -91,41 +67,13 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void View(string fields)
             {
-                if (Callback == null)
-                    throw new SchwabApiException("LevelOneEquities.Request() must happen before a LevelOneEquities.View().");
-
-                streamer.ServiceView(Services.LEVELONE_EQUITIES, fields);
+                CallbackCheck(Callback, "View");
+                streamer.ServiceView(service, fields);
             }
 
-            /// <summary>
-            /// process received level one equities data
-            /// </summary>
-            /// <param name="response"></param>
-            /// <exception cref="Exception"></exception>
-            internal override void ProcessResponse(ResponseMessage.Response response)
+            internal override void ProcessResponseSUBS(ResponseMessage.Response response)
             {
-                // { "response":[{ "service":"LEVELONE_EQUITIES","command":"SUBS","requestid":"1","SchwabClientCorrelId":"6abed7d7-e984-bcc4-9b7f-455bbd11f13d",
-                // "timestamp":1718745000244,"content":{ "code":0,"msg":"SUBS command succeeded"} }]}
-
-                if (response.content.code != 0)
-                {
-                    throw new Exception(string.Format(
-                        "streamer LEVELONE_EQUITIES {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg));
-                }
-
-                switch (response.command)
-                {
-                    case "SUBS":
-                        Data = new List<LevelOneEquity>(); // clear for new service
-                        break;
-                    case "ADD":
-                        break;
-                    case "UNSUBS":
-                        break;
-
-                    default:
-                        break;
-                }
+                Data = new List<LevelOneEquity>(); // clear for new service
             }
 
             internal override void ProcessData(DataMessage.DataItem d, dynamic content)
@@ -162,6 +110,13 @@ namespace SchwabApiCS
                     quote.UpdateProperties(content[i]);
                 }
                 Callback(Data); // callback to application with updated values
+            }
+
+            internal override void RemoveFromData(string symbol)
+            {
+                var i = Data.Where(r => r.key == symbol).SingleOrDefault();
+                if (i != null)
+                    Data.Remove(i); // don't process anymore
             }
 
         }
@@ -328,7 +283,7 @@ namespace SchwabApiCS
                             case (int)Fields.DividendYield: DividendYield = (double)d.Value; break;
                             case (int)Fields.NAV: NAV = (double)d.Value; break;
                             case (int)Fields.ExchangeName: ExchangeName = (string)d.Value; break;
-                            case (int)Fields.DividendDate: DividendDate = (DateTime)d.Value; break;
+                            case (int)Fields.DividendDate: DividendDate = (string)d.Value == "" ? null : (DateTime)d.Value; break;
                             case (int)Fields.RegularMarketQuote: RegularMarketQuote = (bool)d.Value; break;
                             case (int)Fields.RegularMarketTrade: RegularMarketTrade = (bool)d.Value; break;
                             case (int)Fields.RegularMarketLastPrice: RegularMarketLastPrice = (double)d.Value; break;
@@ -352,8 +307,8 @@ namespace SchwabApiCS
                             case (int)Fields.HardToBorrowRate: HardToBorrowRate = (double)d.Value; break;
                             case (int)Fields.HardToBorrow: HardToBorrow = (int?)d.Value; break;
                             case (int)Fields.Shortable: Shortable = (int?)d.Value; break;
-                            case (int)Fields.PostMarketNetChange: HardToBorrowRate = (double)d.Value; break;
-                            case (int)Fields.PostMarketPercentChange: HardToBorrowRate = (double)d.Value; break;
+                            case (int)Fields.PostMarketNetChange: PostMarketNetChange = (double)d.Value; break;
+                            case (int)Fields.PostMarketPercentChange: PostMarketPercentChange = (double)d.Value; break;
                         }
                     }
                 }

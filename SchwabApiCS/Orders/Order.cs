@@ -384,6 +384,7 @@ namespace SchwabApiCS
         public class OrderActivity
         {
             public string? activityType { get; set; }
+            public long? activityId { get; set; }
             public string? executionType { get; set; }
             public decimal quantity { get; set; }
             public decimal? orderRemainingQuantity { get; set; }
