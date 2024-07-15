@@ -44,7 +44,7 @@ namespace SchwabApiCS
         /// </summary>
         /// <param name="accountNumber"></param>
         /// <param name="order">Create the order object and populate it.</param>
-        /// <returns>orderId or null</returns>
+        /// <returns>SchwabOrderID or null</returns>
         public async Task<ApiResponseWrapper<long?>> OrderExecuteNewAsync(string accountNumber, Order order)
         {
             if (order.orderLegCollection != null)
@@ -56,7 +56,7 @@ namespace SchwabApiCS
                 }
             }
 
-            order.price = PriceAdjust(order.price); // Schwab rule: orders aboive $1 can only have 2 decimals.
+            order.price = PriceAdjust(order.price); // Schwab rule: orders above $1 can only have 2 decimals.
             order.stopPrice = PriceAdjust(order.stopPrice);
 
             var jsonOrder = order.JsonSerialize();
@@ -66,7 +66,7 @@ namespace SchwabApiCS
             if (result.ResponseMessage != null && result.ResponseMessage.IsSuccessStatusCode)
             {
                 var pathParts = result.ResponseMessage.Headers.Location.LocalPath.Split('/');
-                result.Data = Convert.ToInt64(pathParts[pathParts.Length-1]); // get last part, should be orderId
+                result.Data = Convert.ToInt64(pathParts[pathParts.Length-1]); // get last part, should be SchwabOrderID
             } 
             else
             {

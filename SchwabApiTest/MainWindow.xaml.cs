@@ -41,13 +41,30 @@ namespace SchwabApiTest
                 var p = resourcesPath.IndexOf(@"\SchwabApiTest\");
                 if (p != -1)
                     resourcesPath = resourcesPath.Substring(0, p + 15);
-
                 tokenDataFileName = resourcesPath + "SchwabTokens.json"; // located in the project folder.
+
+
                 schwabTokens = new SchwabTokens(tokenDataFileName); // gotta get the tokens First.
                 if (schwabTokens.NeedsReAuthorization)
-                {
+                { // use WPF dll to start web browser to capture new tokens
                     SchwabApiCS_WPF.ApiAuthorize.Open(tokenDataFileName);
                     schwabTokens = new SchwabTokens(tokenDataFileName); // reload changes
+                }
+
+                try
+                {
+                    schwabApi = new SchwabApi(schwabTokens);
+                }
+                catch (Exception ex)
+                {
+                    if (ex.Message.StartsWith("error: 400 GetAccessToken: Token Authorization failed.400: Bad Request")) {  // refresh token expired?
+                        // RefreshTokenExpires must be incorrect. Shouldn't get here normally.
+                        SchwabApiCS_WPF.ApiAuthorize.Open(tokenDataFileName);
+                        schwabTokens = new SchwabTokens(tokenDataFileName); // reload changes
+                        schwabApi = new SchwabApi(schwabTokens);
+                    }
+                    else
+                        throw;
                 }
 
                 AppStart();
@@ -93,7 +110,6 @@ namespace SchwabApiTest
 
         private void AppStart()
         {
-            schwabApi = new SchwabApi(schwabTokens);
             // application code starts here =============================
 
             // for the Class Converter
@@ -307,9 +323,9 @@ namespace SchwabApiTest
                 
                 streamer.LevelOneOptions.Request(optionSymbols, LevelOneOption.CommonFields, OptionsStreamerCallback);
 
-                streamer.NasdaqBooks.Request("AAPL", Book.AllFields, NasdaqBookStreamerCallback);
-                streamer.NyseBooks.Request("A", Book.AllFields, NyseBookStreamerCallback);
-                streamer.OptionsBooks.Request(optionSymbols, Book.AllFields, OptionsBookStreamerCallback);
+                //streamer.NasdaqBooks.Request("AAPL", Book.AllFields, NasdaqBookStreamerCallback);
+                //streamer.NyseBooks.Request("A", Book.AllFields, NyseBookStreamerCallback);
+                //streamer.OptionsBooks.Request(optionSymbols, Book.AllFields, OptionsBookStreamerCallback);
 
                 streamer.AccountActivities.Request(AccountActivityStreamerCallback);
 
@@ -321,8 +337,7 @@ namespace SchwabApiTest
                 Quote.Text = JsonConvert.SerializeObject(applQuote, Formatting.Indented); // display in MainWindow
                 TaskJson.Text = JsonConvert.SerializeObject(taskAppl, Formatting.Indented); // display in MainWindow
 
-                var quotes = schwabApi.GetQuotes("IWM,SPY,USO", true, "quote");
-
+                var quotes = schwabApi.GetQuotes("IWM,SPY,USO,InvalidSymbol,MU    240809P00121000,/ES,USD/JPY", true);
 
                 // uncomment lines below for more testing  ===========================================
                 /*

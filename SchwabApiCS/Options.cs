@@ -51,7 +51,7 @@ namespace SchwabApiCS
         {
             var url = MarketDataBaseUrl + "/chains?symbol=" + symbol;
 
-            // optional parameters:  2024-06-07 - strikeCount seems to be ignored by the API
+            // optional parameters:
             if (p.contractType != null)
                 url += "&contractType=" + p.contractType.ToString();
             if (p.strikeCount != null)
@@ -108,33 +108,41 @@ namespace SchwabApiCS
                     oc = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain>(j.ToString());
                 }
 
-                foreach (var eDate in jc) { // expiration date
-                    foreach (var strike in eDate) // strike
+                foreach (var eDate in jc)
+                { // expiration date
+                    foreach (var strikes in eDate) // strike
                     {
-                        try
+                        foreach (var strike in strikes)
                         {
-                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString(), jsonSettings);
+                            try
+                            {
+                                option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.ToString(), jsonSettings);
+                            }
+                            catch (Exception ex)
+                            {
+                                option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.ToString());
+                            }
+                            oc.calls.Add(option);
                         }
-                        catch (Exception ex) {
-                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
-                        }
-                        oc.calls.Add(option);
                     }
                 }
 
                 foreach (var eDate in jp)
                 { // expiration date
-                    foreach (var strike in eDate) // strike
+                    foreach (var strikes in eDate) // strike
                     {
-                        try
+                        foreach (var strike in strikes)
                         {
-                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString(), jsonSettings);
+                            try
+                            {
+                                option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.ToString(), jsonSettings);
+                            }
+                            catch (Exception ex)
+                            {
+                                option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.ToString());
+                            }
+                            oc.puts.Add(option);
                         }
-                        catch (Exception ex)
-                        {
-                            option = Newtonsoft.Json.JsonConvert.DeserializeObject<OptionChain.Option>(strike.First.First.First.ToString());
-                        }
-                        oc.puts.Add(option);
                     }
                 }
                 return new ApiResponseWrapper<OptionChain>(oc, result.HasError, result.ResponseCode, result.ResponseText);

@@ -3,6 +3,7 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 7.1.0 - released 2024-07-15
 // Version 7.0.0 - released 2024-07-09?
 // Version 6.0.2 - released 2024-07-05
 // Version 6.0.1 - released 2024-07-04
@@ -25,7 +26,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const string Version = "7.0.0";
+        public const string Version = "7.1.0";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description

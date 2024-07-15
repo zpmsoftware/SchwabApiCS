@@ -456,11 +456,6 @@ namespace SchwabApiCS
                 public string assetMainType { get; set; }
                 public string assetSubType { get; set; }
                 public string cusip { get; set; }
-
-                /* - parse these manually
-                [JsonProperty("1")]
-                public double _1 { get; set; }
-                */
             }
         }
 

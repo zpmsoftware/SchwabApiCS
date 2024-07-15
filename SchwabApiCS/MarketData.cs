@@ -103,7 +103,7 @@ namespace SchwabApiCS
                 url += "?fields=" + fields;
             return await Get<Quote>(url, ConvertToQuote);
         }
-       
+
 
         private static string ConvertToQuote(string json)
         {
@@ -111,9 +111,9 @@ namespace SchwabApiCS
             return j.First.First.ToString();
         }
 
-        private static string ConvertToQuoteJsonArray(string json) 
+        private static string ConvertToQuoteJsonArray(string json)
         {
-            json = "[" + json.Substring(1, json.Length-2) + "]";
+            json = "[" + json.Substring(1, json.Length - 2) + "]";
 
             var p = 1;
             do
@@ -194,6 +194,7 @@ namespace SchwabApiCS
 
                 [JsonProperty("52WeekLow")]
                 public decimal _52WeekLow { get; set; }
+
                 public string askMICId { get; set; }
                 public decimal askPrice { get; set; }
                 public int askSize { get; set; }
@@ -203,7 +204,6 @@ namespace SchwabApiCS
                 public int bidSize { get; set; }
                 public long bidTime { get; set; }
                 public decimal closePrice { get; set; }
-                public decimal futurePercentChange { get; set; }
                 public decimal highPrice { get; set; }
                 public string lastMICId { get; set; }
                 public decimal lastPrice { get; set; }
@@ -221,9 +221,26 @@ namespace SchwabApiCS
                 public string securityStatus { get; set; }
                 public long totalVolume { get; set; }
                 public long tradeTime { get; set; }
-                public long volatility { get; set; }
 
-                public int openInterest { get; set; } // futures
+                // Options
+                public decimal? delta { get; set; }
+                public decimal? gamma { get; set; }
+                public decimal? theta { get; set; }
+                public decimal? rho { get; set; }
+                public decimal? vega { get; set; }
+                public decimal? futurePercentChange { get; set; }
+                public decimal? indAskPrice { get; set; }
+                public decimal? indBidPrice { get; set; }
+                public int? indQuoteTime { get; set; }
+                public decimal? impliedYield { get; set; }
+                public decimal? moneyIntrinsicValue { get; set; }
+                public int? openInterest { get; set; } // futures
+                public decimal? theoreticalOptionValue { get; set; }
+                public decimal? timeValue { get; set; }
+                public decimal? underlyingPrice { get; set; }
+                public decimal? volatility { get; set; }
+
+                // futures
                 public bool quotedInSession { get; set; } // futures
                 public long settleTime { get; set; } // futures
                 public decimal tick { get; set; } // futures
@@ -276,7 +293,21 @@ namespace SchwabApiCS
                 public bool? isShortable { get; set; }
                 public long? htbQuantity { get; set; }
                 public decimal? htbRate { get; set; }
-
+                public string contractType { get; set; }
+                public int? daysToExpiration { get; set; }
+                public string deliverables { get; set; }
+                public string exerciseType { get; set; }
+                public int? expirationDay { get; set; }
+                public int? expirationMonth { get; set; }
+                public string expirationType { get; set; }
+                public int? expirationYear { get; set; }
+                public bool? isPennyPilot { get; set; }
+                public long? lastTradingDay { get; set; }
+                public decimal? multiplier { get; set; }
+                public string settlementType { get; set; }
+                public decimal? strikePrice { get; set; }
+                public string underlying { get; set; }
+                public string underlyingAssetType { get; set; }
                 public long? futureExpirationDate { get; set; }
                 public bool? futureIsActive { get; set; }
                 public decimal? futureMultiplier { get; set; }
@@ -284,6 +315,8 @@ namespace SchwabApiCS
                 public decimal? futureSettlementPrice { get; set; }
                 public string? futureTradingHours { get; set; }
                 public string? product { get; set; }
+                public bool? isTradable { get; set; }
+
 
                 private DateTime? _futureExpirationDate = null;
                 public DateTime? FutureExpirationDate  // local time
@@ -301,7 +334,6 @@ namespace SchwabApiCS
                 public decimal regularMarketPercentChange { get; set; }
                 public long regularMarketTradeTime { get; set; }
 
-
                 private DateTime? _regularMarketTradeTime = null;
                 public DateTime RegularMarketTradeTime  // local time
                 {
@@ -310,7 +342,6 @@ namespace SchwabApiCS
                 }
             }
         }
-
 
         // =========== PRICE HISTORY ============================================================================
         /// <summary>
