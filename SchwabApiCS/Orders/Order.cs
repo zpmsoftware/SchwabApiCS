@@ -17,7 +17,14 @@ namespace SchwabApiCS
     {
         // ====== ORDER CONSTRUCTORS ================================================
         #region Order_Constructors
-        public Order()  { }  // empty order
+
+        /// <summary>
+        /// empty order
+        /// </summary>
+        public Order() 
+        {
+            orderLegFillDetails = new OrderLegFillDetails(this);
+        }  
 
         /// <summary>
         /// Generic order
@@ -29,6 +36,7 @@ namespace SchwabApiCS
         /// <param name="price"></param>
         public Order(OrderType orderType, OrderStrategyTypes orderStrategyTypes, Session session, Duration duration, decimal? price = null)
         {
+            orderLegFillDetails = new OrderLegFillDetails(this);
             this.orderType = orderType.ToString();
             this.orderStrategyType = orderStrategyTypes.ToString();
             this.session = session.ToString();
@@ -38,7 +46,7 @@ namespace SchwabApiCS
             else
                 this.price = SchwabApi.PriceAdjust(price);
         }
-        
+
         #endregion Order_Constructors
 
 
@@ -68,42 +76,6 @@ namespace SchwabApiCS
                 status
                 );
         }
-
-        /// <summary>
-        /// Average price of transaction  (not rounded to 2 decimals)
-        /// </summary>
-        public decimal AveragePrice { get { return filledQuantity == null || filledQuantity == 0 ? 0 : FilledAmount / (decimal)filledQuantity; } }
-
-        /// <summary>
-        /// Total cost or proceeds of transaction  (not rounded to 2 decimals)
-        /// </summary>
-        public decimal FilledAmount
-        {
-            get
-            {
-                decimal amount = 0;
-
-                if (filledQuantity != null && filledQuantity != 0 && orderActivityCollection != null)
-                {
-                    foreach (var oa in orderActivityCollection)
-                    {
-                        if (oa.executionLegs != null)
-                        {
-                            foreach (var eLeg in oa.executionLegs)
-                            {
-                                var leg = orderLegCollection.Where(r=> r.legId == eLeg.legId).Single();
-                                decimal multiplier = leg.instrument.optionDeliverables == null ? 1 : (decimal)leg.instrument.optionDeliverables[0].deliverableUnits;
-
-                                if (eLeg.price != null)
-                                    amount += eLeg.quantity * multiplier * (decimal)eLeg.price;
-                            }
-                        }
-                    }
-                }
-                return amount;
-            }
-        }
-
 
         public string JsonSerialize()
         {
@@ -140,6 +112,86 @@ namespace SchwabApiCS
         public static SchwabApiCS.Order.OrderStrategyTypes GetOrderStrategyType(string orderStrategyType)
         {
             return SchwabApi.GetEnum<SchwabApiCS.Order.OrderStrategyTypes>(orderStrategyType);
+        }
+
+        public class OrderLegFillDetails
+        {
+            private Order order;
+
+            public OrderLegFillDetails(Order order)
+            {
+                this.order = order;
+            }
+
+            public int Count { get { return order.orderLegCollection.Count; } }
+
+
+            /// <summary>
+            /// Current fill details for an order leg
+            /// Should work for equities and options.  
+            /// Bonds, forex, and futures HAVE NOT been tested.
+            /// </summary>
+            /// <param name="orderLegIndex"></param>
+            /// <returns></returns>
+            /// <exception cref="IndexOutOfRangeException"></exception>
+            public FillDetails this[int orderLegIndex]
+            {
+                get
+                {
+                    decimal quantity = 0;
+                    decimal price = 0;
+                    decimal amount = 0;
+
+                    if (orderLegIndex >= Count)
+                        throw new IndexOutOfRangeException("FillDetails index out of bounds.");
+
+                    var leg = order.orderLegCollection[orderLegIndex];
+
+                    if (order.orderActivityCollection != null)
+                    {
+                        foreach (var oa in order.orderActivityCollection.Where(r => r.executionType == "FILL").ToList())
+                        {
+                            if (oa.executionLegs != null)
+                            {
+                                decimal multiplier = leg.instrument.optionDeliverables == null ? 1 : (decimal)leg.instrument.optionDeliverables[0].deliverableUnits;
+
+                                foreach (var eLeg in oa.executionLegs)
+                                {
+                                    if (eLeg.price != null && eLeg.legId == leg.legId)
+                                    {
+                                        quantity += eLeg.quantity;
+                                        price += eLeg.quantity * (decimal)eLeg.price;
+                                        amount += eLeg.quantity * multiplier * (decimal)eLeg.price;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return new FillDetails()
+                    {
+                        Quantity = quantity,
+                        AveragePrice = quantity == 0 ? 0 : price / quantity,
+                        Amount = amount,
+                    };
+                }
+            }
+
+            public class FillDetails
+            {
+                public decimal Quantity { get; set; }
+                public decimal AveragePrice { get; set; }
+
+                /// <summary>
+                /// Amount of transaction (cost or proceeds)
+                /// </summary>
+                public decimal Amount { get; set; }
+
+                public override string ToString()
+                {
+                    return $"Quantity={Quantity}, AveragePrice={AveragePrice}, Amount={Amount}";
+                }
+            }
         }
 
         #endregion Order_Helper_Methods
@@ -201,6 +253,7 @@ namespace SchwabApiCS
         // ============ ORDER_PROPERTIES =====================================================
         #region Order_Properties
 
+        public OrderLegFillDetails orderLegFillDetails;
 
         [DefaultValue(null)]
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]

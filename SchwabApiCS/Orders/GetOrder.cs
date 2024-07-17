@@ -54,30 +54,22 @@ namespace SchwabApiCS
 
         /// <summary>
         /// Get Orders for a specific account async
+        /// If orders outside of a date range are still open within the specified date range, they are included
         /// </summary>
         /// <param name="accountNumber">account number or accountNumberHash</param>
-        /// <param name="fromDate">Will filter on time if has a time component</param>
-        /// <param name="toDate">Will filter on time if has a time component</param>
-        /// <param name="status">null or single status</param>
+        /// <param name="fromDate">required</param>
+        /// <param name="toDate">required</param>
+        /// <param name="status">optional or single status</param>
         /// <returns></returns>
         public async Task<ApiResponseWrapper<IList<Order>>> GetOrdersAsync(string accountNumber, DateTime fromDate, DateTime toDate, Order.Status? status = null)
         {
             string fDate = fromDate.ToUniversalTime().ToString(utcDateFormat);
             string tDate = toDate.ToUniversalTime().ToString(utcDateFormat);
-            string parms = "fromEnteredTime=" + fDate + "&toEnteredTime=" + tDate;
+            string parms = $"fromEnteredTime={fDate}&toEnteredTime={tDate}";
+
             if (status != null)
                 parms += "&status=" + status.ToString();
             var t = await Get<IList<Order>>(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders?" + parms);
-
-            /*
-            // API only filters on date part, not time
-            if (toDate.TimeOfDay.Milliseconds > 0)
-                t.Data = t.Data.Where(r=> r.enteredTime >= fromDate && r.enteredTime <= toDate).ToList();
-            else if (fromDate.TimeOfDay.Milliseconds > 0)
-                t.Data = t.Data.Where(r => r.enteredTime >= fromDate).ToList();
-            */
-
-            t.Data = t.Data.Where(r => r.enteredTime >= fromDate && r.enteredTime <= toDate).OrderBy(r=>r.closeTime).ToList();  // api returns too much.
             return t;
         }
 
