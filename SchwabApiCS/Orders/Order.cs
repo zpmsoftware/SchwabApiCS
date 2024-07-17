@@ -69,6 +69,42 @@ namespace SchwabApiCS
                 );
         }
 
+        /// <summary>
+        /// Average price of transaction  (not rounded to 2 decimals)
+        /// </summary>
+        public decimal AveragePrice { get { return filledQuantity == null || filledQuantity == 0 ? 0 : FilledAmount / (decimal)filledQuantity; } }
+
+        /// <summary>
+        /// Total cost or proceeds of transaction  (not rounded to 2 decimals)
+        /// </summary>
+        public decimal FilledAmount
+        {
+            get
+            {
+                decimal amount = 0;
+
+                if (filledQuantity != null && filledQuantity != 0 && orderActivityCollection != null)
+                {
+                    foreach (var oa in orderActivityCollection)
+                    {
+                        if (oa.executionLegs != null)
+                        {
+                            foreach (var eLeg in oa.executionLegs)
+                            {
+                                var leg = orderLegCollection.Where(r=> r.legId == eLeg.legId).Single();
+                                decimal multiplier = leg.instrument.optionDeliverables == null ? 1 : (decimal)leg.instrument.optionDeliverables[0].deliverableUnits;
+
+                                if (eLeg.price != null)
+                                    amount += eLeg.quantity * multiplier * (decimal)eLeg.price;
+                            }
+                        }
+                    }
+                }
+                return amount;
+            }
+        }
+
+
         public string JsonSerialize()
         {
             return Newtonsoft.Json.JsonConvert.SerializeObject(this);
@@ -163,7 +199,7 @@ namespace SchwabApiCS
 
 
         // ============ ORDER_PROPERTIES =====================================================
-        #region Orrder_Properties
+        #region Order_Properties
 
 
         [DefaultValue(null)]
@@ -278,7 +314,7 @@ namespace SchwabApiCS
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string? specialInstruction { get; set; }
 
-        #endregion Orrder_Properties
+        #endregion Order_Properties
 
 
         // ========= ExecutionLeg Class ======================================================

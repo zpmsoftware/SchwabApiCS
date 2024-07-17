@@ -49,7 +49,7 @@ namespace SchwabApiCS
         /// <returns></returns>
         public IList<Order> GetOrders(string accountNumber, DateTime fromDate, DateTime toDate, Order.Status? status = null)
         {
-            return WaitForCompletion(GetOrdersAsync(accountNumber, fromDate, toDate));
+            return WaitForCompletion(GetOrdersAsync(accountNumber, fromDate, toDate, status));
         }
 
         /// <summary>
@@ -69,12 +69,15 @@ namespace SchwabApiCS
                 parms += "&status=" + status.ToString();
             var t = await Get<IList<Order>>(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders?" + parms);
 
+            /*
             // API only filters on date part, not time
             if (toDate.TimeOfDay.Milliseconds > 0)
                 t.Data = t.Data.Where(r=> r.enteredTime >= fromDate && r.enteredTime <= toDate).ToList();
             else if (fromDate.TimeOfDay.Milliseconds > 0)
                 t.Data = t.Data.Where(r => r.enteredTime >= fromDate).ToList();
+            */
 
+            t.Data = t.Data.Where(r => r.enteredTime >= fromDate && r.enteredTime <= toDate).OrderBy(r=>r.closeTime).ToList();  // api returns too much.
             return t;
         }
 
