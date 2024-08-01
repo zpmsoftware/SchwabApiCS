@@ -3,25 +3,27 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-using System;
-using System.Windows;
 using Newtonsoft.Json;
-using System.Data;
 using SchwabApiCS;
-using static SchwabApiCS.SchwabApi;
-using System.Windows.Controls;
+using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
-using System.Windows.Navigation;
-using static SchwabApiCS.Streamer;
 using System.IO;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Navigation;
+using static SchwabApiCS.SchwabApi;
+using static SchwabApiCS.Streamer;
+using static SchwabApiCS.Streamer.LevelOneEquitiesService;
 
 namespace SchwabApiTest
 {
     /// <summary>
     /// Test for SchwabApiTest
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
+
         private static SchwabApi schwabApi;
         private string tokenDataFileName = "";
         private SchwabTokens schwabTokens;
@@ -35,6 +37,7 @@ namespace SchwabApiTest
             {
                 InitializeComponent();
                 Title = title + ", version " + SchwabApi.Version;
+                DataContext = this;
 
                 // modify tokenDataFileName to where your tokens and accountNumber for testing are located
                 resourcesPath = System.IO.Directory.GetCurrentDirectory();
@@ -74,6 +77,22 @@ namespace SchwabApiTest
                 var msg = SchwabApi.ExceptionMessage(ex);
                 MessageBox.Show(msg.Message, msg.Title);
             }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public double spyMark = 0;
+        public double SpyMark
+        {
+            get { return spyMark; }
+            set { spyMark = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SpyMark")); }
+        }
+
+        public double spyAsk = 0;
+        public double SpyAsk
+        {
+            get { return spyAsk; }
+            set { spyAsk = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("SpyAsk")); }
         }
 
         const int FixedColumns = 5;
@@ -126,15 +145,19 @@ namespace SchwabApiTest
 
             foreach (var a in accounts)
             {
-                foreach (var p in a.securitiesAccount.positions)
+                if (a.securitiesAccount.positions != null)
                 {
-                    var s = symbols.Where(r => r.Symbol == p.instrument.symbol).SingleOrDefault();
-                    if (s == null)
-                        symbols.Add(new SymbolItem() { Symbol = p.instrument.symbol, count = 1, Quantity = p.longQuantity > 0 ? p.longQuantity : -p.shortQuantity });
-                    else
+
+                    foreach (var p in a.securitiesAccount.positions)
                     {
-                        s.Quantity += p.longQuantity > 0 ? p.longQuantity : -p.shortQuantity;
-                        s.count++;
+                        var s = symbols.Where(r => r.Symbol == p.instrument.symbol).SingleOrDefault();
+                        if (s == null)
+                            symbols.Add(new SymbolItem() { Symbol = p.instrument.symbol, count = 1, Quantity = p.longQuantity > 0 ? p.longQuantity : -p.shortQuantity });
+                        else
+                        {
+                            s.Quantity += p.longQuantity > 0 ? p.longQuantity : -p.shortQuantity;
+                            s.count++;
+                        }
                     }
                 }
             }
@@ -151,13 +174,16 @@ namespace SchwabApiTest
                     PositionPL = new decimal[symbols.Count]
                 };
                 accts.Add(acct);
-                foreach (var p in a.securitiesAccount.positions)
+                if (a.securitiesAccount.positions != null)
                 {
-                    var idx = symbols.FindIndex(r => r.Symbol == p.instrument.symbol);
-                    if (idx >= 0)
+                    foreach (var p in a.securitiesAccount.positions)
                     {
-                        acct.PositionPL[idx] = p.currentDayProfitLoss;
-                        acct.DayPL += p.currentDayProfitLoss;
+                        var idx = symbols.FindIndex(r => r.Symbol == p.instrument.symbol);
+                        if (idx >= 0)
+                        {
+                            acct.PositionPL[idx] = p.currentDayProfitLoss;
+                            acct.DayPL += p.currentDayProfitLoss;
+                        }
                     }
                 }
             }
@@ -183,7 +209,7 @@ namespace SchwabApiTest
             AccountList.ItemsSource = accts;
         }
 
-        public void StreamerCallback(List<Streamer.LevelOneEquity> levelOneEquities)
+        public void EquitiesStreamerCallback(List<Streamer.LevelOneEquity> levelOneEquities)
         {
             EquityList.Dispatcher.Invoke(() =>
             {
@@ -300,32 +326,54 @@ namespace SchwabApiTest
                 var ocp = new OptionChainParameters
                 {
                     contractType = SchwabApi.ContractType.ALL,
-                    strike = 210
+                    //strike = 210,
+                    fromDate = DateTime.Today,
+                    toDate = DateTime.Today.AddDays(30)
                 };
                 var aaplOptions = schwabApi.GetOptionChain("AAPL", ocp);
 
 
                 // start streamer services  =====================================
+                // *** NOTE ***:  ONLY ONE streamer is allowed per client.
+                // creating a second streamer will throw an exception on the first when Schwab shuts down the first channel. 
                 streamer = new Streamer(schwabApi);
 
-                streamer.LevelOneEquities.Request("SPY,IWM,GLD,NVDA", Streamer.LevelOneEquity.CommonFields, StreamerCallback);
-                streamer.LevelOneEquities.Add("AAPL");
-                //streamer.LevelOneEquities.Remove("AAPL"); - works
+
+                // EquityStreamer class is not part of SchwabApiCS, but feel free to use it.
+                // It is intended for use when many application components need streaming, sometimes for the same symbol.
+                // EquityStreamer.Add() can be called multiple times for the same symbol from different places and share the same streamed data.
+                //
+                // Normally do not use both streamer.LevelOneEquities.Request() and EquityStreamer() class at the same time.
+                // They will interfere with each other.
+                //
+                var es = new EquityStreamer(streamer, EquitiesStreamerCallback);
+                var spyData = es.Add("SPY", SpyStreamCallback, SpyPropertyCallback);  // add only one symbol at a time
+
+                SpyMark = spyData.MarkPrice; // this is not needed to initialize SpyMark IF this was the first SPY added.
+                                             // otherwise SpyMark will not be set until SPY MarkPrice changes, which wouldn't be noticeable with
+                                             // an active equity like SPY, but after hours or with a lightly traded equity this will be needed
+                es.Add("IWM");
+                es.Add("GLD");
+                es.Add("NVDA");
+
+                //var eqList = streamer.LevelOneEquities.Request("SPY,IWM,GLD,NVDA", Streamer.LevelOneEquity.CommonFields, EquitiesStreamerCallback);
+                //streamer.LevelOneEquities.Add("AAPL");
+                //streamer.LevelOneEquities.Remove("AAPL"); // - works
                 // streamer.LevelOneEquities.View(Streamer.LevelOneEquities.AllFields); -- not working yet
 
                 streamer.LevelOneFutures.Request("/ES,/CL,/GC,/SI", LevelOneFuture.CommonFields, FuturesStreamerCallback);
                 streamer.LevelOneForexes.Request("USD/JPY", LevelOneForex.AllFields, LevelOneForexesStreamerCallback);
 
-                streamer.ChartEquities.Request("AAPL", ChartEquity.AllFields, ChartEquitiesStreamerCallback);
+                streamer.ChartEquities.Request("AAPL,SPY", ChartEquity.AllFields, ChartEquitiesStreamerCallback);
                 streamer.ChartFutures.Request("/ES", ChartFuture.AllFields, ChartFuturesStreamerCallback);
 
                 var optionSymbols = string.Join(',', aaplOptions.calls.Select(a => a.symbol).Take(10).ToArray());
-                
-                streamer.LevelOneOptions.Request(optionSymbols, LevelOneOption.CommonFields, OptionsStreamerCallback);
 
-                //streamer.NasdaqBooks.Request("AAPL", Book.AllFields, NasdaqBookStreamerCallback);
-                //streamer.NyseBooks.Request("A", Book.AllFields, NyseBookStreamerCallback);
-                //streamer.OptionsBooks.Request(optionSymbols, Book.AllFields, OptionsBookStreamerCallback);
+                streamer.LevelOneOptions.Request(optionSymbols, LevelOneOption.AllFields, OptionsStreamerCallback);
+
+                streamer.NasdaqBooks.Request("AAPL", Book.AllFields, NasdaqBookStreamerCallback);
+                streamer.NyseBooks.Request("A", Book.AllFields, NyseBookStreamerCallback);
+                streamer.OptionsBooks.Request(optionSymbols, Book.AllFields, OptionsBookStreamerCallback);
 
                 streamer.AccountActivities.Request(AccountActivityStreamerCallback);
 
@@ -519,7 +567,7 @@ namespace SchwabApiTest
 
                 if (e == null || ((TabItem)e.AddedItems[0]).Name == "ToClass")
                 {
-                    var ftext = tbFromClass.Text.Replace("\r","").Split("\n"); // from text
+                    var ftext = tbFromClass.Text.Replace("\r", "").Split("\n"); // from text
                     var classCode = "";  // new class
 
                     for (var i = 0; i < ftext.Length; i++)
@@ -535,7 +583,7 @@ namespace SchwabApiTest
                             if (className == "Root")
                             {
                                 var isClass_ = (classType != "Parent/Child records") ? true : isClass;
-                                root = ClassBuilder_ParseClass("ClassName",  isClass_, ftext, ref i);
+                                root = ClassBuilder_ParseClass("ClassName", isClass_, ftext, ref i);
                                 if (!classType.StartsWith("Parent/Child"))
                                 { // is ActivityClass, remove these properties - they are in the inherited class
                                     root = root.Replace("    public string SchwabOrderID { get; set; }\n", "")
@@ -637,6 +685,234 @@ namespace SchwabApiTest
                 else
                     ClassBuilder_TabControl_SelectionChanged(null, null);
             }
+        }
+
+        /// <summary>
+        /// Implementation utilizing LevelOneEquity callback and PropertyChanged
+        /// When using this class, do not access SchwabApiCS LevelOneEquities directly. They will interfere with each other. 
+        /// </summary>
+        public class EquityStreamer
+        {
+            private List<SymbolItem> symbolItems = new List<SymbolItem>(); // list of symbols being watched
+            private List<LevelOneEquity>? data = null;
+            private Streamer streamer;
+            private EquitiesCallback equitiesCallback;  // method to call when any property changes.
+
+            /// <summary>
+            /// Implementation utilizing LevelOneEquity PropertyChanged
+            /// </summary>
+            /// <param name="streamer"></param>
+            /// <param name="callback">method to call when any property changes</param>
+            public EquityStreamer(Streamer streamer, EquitiesCallback callback)
+            {
+                this.streamer = streamer;
+                this.equitiesCallback = callback; // called when processing response completed, which could be many symbols
+            }
+
+            /// <summary>
+            /// Add a SINGLE symbol to watch to an EquityStreamer with no symbol specific callbacks
+            /// </summary>
+            /// <param name="symbol">symbol to watch</param>
+            /// <param name="callback">method to call when LevelOneEquity was changed</param>
+            /// <param name="propertyCallback">call this for for every LevelOneEquity that was changed</param>
+            public LevelOneEquity Add(string symbol)
+            {
+                return Add(symbol, null, null);
+            }
+
+            /// <summary>
+            /// Add a SINGLE symbol to watch to an EquityStreamer.
+            /// Multiple Adds to the same symbol is supported, and will call multiple callback methods.
+            /// When last callback is removed, the streaming for the symbol will be stopped.
+            /// </summary>
+            /// <param name="symbol">symbol to watch</param>
+            /// <param name="callback">method to call when LevelOneEquity was changed</param>
+            /// <param name="propertyCallback">call this for for every LevelOneEquity that was changed</param>
+            public LevelOneEquity Add(string symbol, LevelOneEquityCallback callback)
+            {
+                return Add(symbol, callback, null);
+            }
+
+            /// <summary>
+            /// Add a SINGLE symbol to watch to an EquityStreamer.
+            /// Multiple Adds to the same symbol is supported, and will call multiple callback methods.
+            /// When last callback is removed, the streaming for the symbol will be stopped.
+            /// </summary>
+            /// <param name="symbol">symbol to watch</param>
+            /// <param name="callback">method to call when LevelOneEquity was changed</param>
+            /// <param name="propertyCallback">call this for for every LevelOneEquity that was changed</param>
+            public LevelOneEquity Add(string symbol, PropertyCallback? propertyCallback)
+            {
+                return Add(symbol, null, propertyCallback);
+            }
+
+            /// <summary>
+            /// Add a SINGLE symbol to watch to an EquityStreamer.
+            /// Multiple Adds to the same symbol is supported, and will call multiple callback methods.
+            /// When last callback is removed, the streaming for the symbol will be stopped.
+            /// </summary>
+            /// <param name="symbol">symbol to watch</param>
+            /// <param name="callback">method to call when LevelOneEquity was changed</param>
+            /// <param name="propertyCallback">call this for for every LevelOneEquity that was changed</param>
+            public LevelOneEquity Add(string symbol, LevelOneEquityCallback? callback, PropertyCallback? propertyCallback)
+            {
+                LevelOneEquity? d;
+
+                if (data == null) // first symbol added, initialize streamer
+                {
+                    data = streamer.LevelOneEquities.Request(symbol, Streamer.LevelOneEquity.CommonFields, equitiesCallback);
+                    d = data.Where(data => data.key == symbol).Single();
+                    d.PropertyChanged += PropertyChangedHandler;
+                    d.Callback = callback;
+                }
+                else
+                {
+                    d = data.Where(data => data.key == symbol).SingleOrDefault(); // look for existing
+                    if (d == null) // if symbol not found in data list, add to streamer's list/
+                    {
+                        streamer.LevelOneEquities.Add(symbol);
+                        d = data.Where(data => data.key == symbol).Single();
+                    }
+                }
+
+                var si = symbolItems.Where(r => r.Symbol == symbol).SingleOrDefault();
+                if (si == null) // new symbol
+                {
+                    si = new SymbolItem(symbol, d);
+                    symbolItems.Add(si);
+                }
+                si.Callbacks.Add(callback);  // list of methods to call when equity changes
+                si.PropertyCallbacks.Add(propertyCallback);
+                return d;
+            }
+
+            /// <summary>
+            /// Remove callback from symbol list
+            /// Be SURE to use same parameters as was used to Add()
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="callback"></param>
+            /// <param name="propertyCallback"></param>
+            public void Remove(string symbol)
+            { 
+                Remove(symbol, null, null);
+            }
+
+            /// <summary>
+            /// Remove callback from symbol list
+            /// Be SURE to use same parameters as was used to Add()
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="callback"></param>
+            /// <param name="propertyCallback"></param>
+            public void Remove(string symbol, LevelOneEquityCallback callback)
+            {
+                Remove(symbol, callback, null);
+            }
+
+            /// <summary>
+            /// Remove callback from symbol list
+            /// Be SURE to use same parameters as was used to Add()
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="callback"></param>
+            /// <param name="propertyCallback"></param>
+            public void Remove(string symbol, PropertyCallback? propertyCallback)
+            {
+                Remove(symbol, null, propertyCallback);
+            }
+
+            /// <summary>
+            /// Remove callback from symbol list
+            /// Be SURE to use same parameters as was used to Add()
+            /// </summary>
+            /// <param name="symbol"></param>
+            /// <param name="callback"></param>
+            /// <param name="propertyCallback"></param>
+            public void Remove(string symbol, LevelOneEquityCallback? callback, PropertyCallback? propertyCallback)
+            {
+                if (data != null)
+                {
+                    var si = symbolItems.Where(r => r.Symbol == symbol).SingleOrDefault();
+                    if (si != null) {
+                        var cb = si.Callbacks.Where(r => r == callback).SingleOrDefault();
+                        if (cb != null)
+                            si.Callbacks.Remove(cb);
+                        
+                        var pc = si.PropertyCallbacks.Where(r => r == propertyCallback).SingleOrDefault();
+                        if (pc != null)
+                            si.PropertyCallbacks.Remove(pc);
+
+                        if (si.Callbacks.Count <= 0 && si.PropertyCallbacks.Count <= 0)
+                        { // stop streaming this symbol, no callbacks left.
+                            streamer.LevelOneEquities.Remove(symbol);
+                            symbolItems.Remove(si);
+                        }
+                    }
+                }
+            }
+
+            public delegate void PropertyCallback(LevelOneEquity data, string fieldName);
+
+
+            /// <summary>
+            /// Called by SchwabApiCS Streamer class when equity changes
+            /// calls symbol callback for all callbacks in the list 
+            /// </summary>
+            /// <param name="sender">LevelOneEquity object</param>
+            /// <param name="args">has PropertyName that was changed in sender</param>
+            public void PropertyChangedHandler(object? sender, PropertyChangedEventArgs args)
+            {
+                var symbol = ((LevelOneEquity)sender).key;
+                var si = symbolItems.Where(r => r.Symbol == symbol).SingleOrDefault();
+                if (si != null)
+                {
+                    foreach (var pc in si.PropertyCallbacks)
+                        pc(((LevelOneEquity)sender), (string)args.PropertyName);
+                }
+            }
+
+
+            public class SymbolItem
+            {
+                public SymbolItem(string symbol, LevelOneEquity data)
+                {
+                    Symbol = symbol;
+                    Data = data;
+                    Callbacks = new List<LevelOneEquityCallback>();
+                    PropertyCallbacks = new List<PropertyCallback>();
+                }
+
+                public string Symbol { get; set; }
+                public List<LevelOneEquityCallback> Callbacks { get; set; }
+                public List<PropertyCallback> PropertyCallbacks { get; set; }
+
+                public LevelOneEquity Data { get; set; }
+            }
+        }
+
+/// <summary>
+/// Whenever a LevelOneEquities response is processed for SPY, this is called.
+/// It will typically be called multiple times per SPY response, once for every property changed
+/// </summary>
+/// <param name="data"></param>
+/// <param name="propertyName"></param>
+public void SpyPropertyCallback(LevelOneEquity data, string propertyName)
+{
+    switch (propertyName)
+    {
+        case "MarkPrice": SpyMark = data.MarkPrice; break;  // this will only be called when data.MarkPrice was changed.
+    }
+}
+
+
+        /// <summary>
+        /// Whenever a LevelOneEquities response is processed for SPY, this is called.
+        /// </summary>
+        /// <param name="data"></param>
+        public void SpyStreamCallback(LevelOneEquity data)
+        {
+            SpyAsk = data.MarkPrice;  // updates every time a response is processed for SPY, REGARDLESS if changed or not
         }
     }
 }

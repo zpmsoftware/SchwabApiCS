@@ -289,6 +289,7 @@ namespace SchwabApiCS
                 public string description { get; set; }
                 public string exchange { get; set; }
                 public string exchangeName { get; set; }
+                public string? otcMarketTier { get; set; }
                 public bool? isHardToBorrow { get; set; }
                 public bool? isShortable { get; set; }
                 public long? htbQuantity { get; set; }
@@ -392,7 +393,7 @@ namespace SchwabApiCS
             {
                 switch (frequencyType)
                 {
-                    case FrequencyType.daily: // check for last candel with 23 hour
+                    case FrequencyType.daily: // check for last candle with 23 hour
                         var c = result.Data.candles.LastOrDefault();
                         if (c.dateTime.Hour == 23)
                             c.dateTime = c.dateTime.AddHours(1);

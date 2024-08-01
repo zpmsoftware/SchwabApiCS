@@ -42,6 +42,12 @@ namespace SchwabApiCS
                     (TimeZoneInfo.FindSystemTimeZoneById(TimeZone.CurrentTimeZone.StandardName).GetUtcOffset(DateTime.Now).Hours -
                      TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time").GetUtcOffset(DateTime.Now).Hours);
 
+        /// <summary>
+        /// *** NOTE ***:  ONLY ONE streamer is allowed per client.
+        /// creating a second streamer will throw an exception on the first when Schwab shuts down the first channel. 
+        /// </summary>
+        /// <param name="schwabApi"></param>
+        /// <exception cref="Exception"></exception>
         public Streamer(SchwabApi schwabApi)
         {
             ServiceList.Add(LevelOneEquities = new LevelOneEquitiesService(this, "LevelOneEquities"));
@@ -94,8 +100,9 @@ namespace SchwabApiCS
                         {
                             var service = ServiceList.Where(s => s.ServiceName == n.service).SingleOrDefault();
                             if (service == null)
-                                throw new Exception("Streamer response service " + n.service + " not implemented");
-
+                            {
+                                throw new Exception($"Streamer response service {n.service}: Code={n.content.code} Msg={n.content.msg}.");
+                            }
                             service.Notify(n);
                         }
                         return;
@@ -275,7 +282,7 @@ namespace SchwabApiCS
                     {
                         keys = symbols.Substring(1),
                         fields = "0" // at this time its required to send a value but doesn't affect the fields returned
-                                     // fields = FieldsSort(fields) // must be in assending order
+                                              // fields = FieldsSort(fields) // must be in assending order
                     }
                 };
                 var req = JsonConvert.SerializeObject(request, Formatting.None, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
@@ -463,7 +470,7 @@ namespace SchwabApiCS
         {
             var f = fields.Split(',');
             Array.Sort(f, (s1, s2) =>
-            { // sort numeric strings in numeric order.  Leading 0 is not allowd!
+            { // sort numeric strings in numeric order.  Leading 0 is not allowed!
                 if (s1.Length == s2.Length)
                     return s1.CompareTo(s2);
                 return (s1.Length >= s2.Length) ? 1 : -1; // longer one is always larger

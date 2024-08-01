@@ -12,7 +12,7 @@
             <TabItem Header="Accounts" Width="100" FontWeight="Bold" FontSize="14">
                 <StackPanel Height="780" Background="#e0e0e0">
                     <DataGrid Name="AccountList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
-                                      MinHeight="200" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12">
+                                      MinHeight="200" SelectionChanged="AccountList_SelectionChanged"  FontWeight="Normal" FontSize="12" IsReadOnly="True">
                         <DataGrid.Resources>
                             <Style TargetType="DataGridColumnHeader">
                                 <Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -22,7 +22,7 @@
                             <DataGridTextColumn Header = "Account" Binding = "{Binding AccountNumber}">
                             </DataGridTextColumn>
                             <DataGridTextColumn Header = "Name" Binding = "{Binding AccountName}" />
-                            <DataGridTextColumn Header = "Value" Binding = "{Binding Path=LiquidationValue, StringFormat=C}">
+                            <DataGridTextColumn Header = "Value" Binding = "{Binding Path=LiquidationValue, StringFormat=C}" IsReadOnly="True">
                                 <DataGridTextColumn.HeaderStyle>
                                     <Style TargetType="DataGridColumnHeader">
                                         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -82,8 +82,12 @@
             </TabItem>
             <TabItem Header="Streaming" Width="100" FontWeight="Bold" FontSize="14">
                 <StackPanel Height="780" Background="#e0e0e0">
-                    <Label  FontWeight="normal" FontSize="14">Level 1 Equities</Label>
-
+                    <StackPanel Orientation="Horizontal">
+                        <Label FontWeight="normal" FontSize="14">Level 1 Equities via EquitiesStreamerCallback()</Label>
+                        <Label FontWeight="normal" FontSize="14" Margin="150,0,10,0">SPY Mark via PropertyChanged event:</Label>
+                        <TextBlock Name="tbkSpyMark" FontWeight="Normal" Margin="0,5,0,0" Text="{Binding Path=SpyMark}"/>
+                    </StackPanel>
+                    
                     <DataGrid Name="EquityList" ItemsSource="{Binding accts}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserSortColumns="False" 
                                       MinHeight="50" MaxHeight="150" FontWeight="Normal" FontSize="12">
                         <DataGrid.Resources>
@@ -447,6 +451,47 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
+                            <DataGridTextColumn Header = "Gamma" Binding = "{Binding Gamma, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Rho" Binding = "{Binding Rho, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header = "Vega" Binding = "{Binding Vega, StringFormat=N2}">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="Padding" Value="5 1 5 1"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
 

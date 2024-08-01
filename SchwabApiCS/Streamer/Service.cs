@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Runtime.CompilerServices;
 using static SchwabApiCS.SchwabApi;
 
 namespace SchwabApiCS
@@ -32,7 +32,7 @@ namespace SchwabApiCS
             public string ReferenceName { get; init; }
 
             protected List<string> ActiveSymbols = new List<string>(); // only accept streamed data from this list
-
+            protected bool serviceIsActive = false;
 
 
             internal Service(Streamer streamer, Services service, string referenceName)
@@ -147,6 +147,13 @@ namespace SchwabApiCS
                     }
                 }
                 return symbols; // returns list of symbols actually found.
+            }
+
+            
+            public void CheckServiceIsActive([CallerMemberName] string callerName = "")
+            {
+                if (!serviceIsActive)
+                    throw new SchwabApiException(ReferenceName + ".Request() must happen before " + ReferenceName + "." + callerName + "().");
             }
 
             public void CallbackCheck(object? callback, string callerName = "")

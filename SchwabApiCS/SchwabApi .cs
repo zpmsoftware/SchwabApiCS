@@ -3,6 +3,7 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 7.2.0 - released 2024-08-01
 // Version 7.1.0 - released 2024-07-15
 // Version 7.0.0 - released 2024-07-09?
 // Version 6.0.2 - released 2024-07-05
@@ -26,7 +27,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const string Version = "7.1.0";
+        public const string Version = "7.2.0";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -426,7 +427,11 @@ namespace SchwabApiCS
                 response = taskResponse.Result;
 
                 if (!response.IsSuccessStatusCode)
+                {
+                    if ((int)response.StatusCode == 502)
+                        response.ReasonPhrase += ". Possible reason is body buffer overflow (response too big)";
                     return new ApiResponseWrapper<T>(default, true, (int)response.StatusCode, response.ReasonPhrase, response);
+                }
 
                 responseString = await response.Content.ReadAsStringAsync();
 

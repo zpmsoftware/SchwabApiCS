@@ -253,6 +253,7 @@ namespace SchwabApiCS
         // ============ ORDER_PROPERTIES =====================================================
         #region Order_Properties
 
+        [JsonIgnore]
         public OrderLegFillDetails orderLegFillDetails;
 
         [DefaultValue(null)]

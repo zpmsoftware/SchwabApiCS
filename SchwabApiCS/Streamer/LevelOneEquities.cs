@@ -3,9 +3,10 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-using System;
-using Newtonsoft.Json;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using static SchwabApiCS.SchwabApi;
+using static SchwabApiCS.Streamer.LevelOneEquitiesService;
 
 
 namespace SchwabApiCS
@@ -14,26 +15,93 @@ namespace SchwabApiCS
     {
         public class LevelOneEquitiesService : Service
         {
+            /// <summary>
+            /// called after a LevelOneEquities request has been received and processed.
+            /// One or multiple values in List<LevelOneEquity> were changed
+            /// </summary>
+            /// <param name="data"></param>
             public delegate void EquitiesCallback(List<LevelOneEquity> data);
-            private List<LevelOneEquity> Data = new List<LevelOneEquity>();
-            private EquitiesCallback? Callback = null;
 
+            /// <summary>
+            /// called when a specific LevelOneEquity was changed.
+            /// </summary>
+            /// <param name="data"></param>
+            public delegate void LevelOneEquityCallback(LevelOneEquity data);
+
+
+            private List<LevelOneEquity> Data = new List<LevelOneEquity>();
+            private EquitiesCallback? equitiesCallback = null;
+           
             public LevelOneEquitiesService(Streamer streamer, string reference)
                 : base(streamer, Service.Services.LEVELONE_EQUITIES, reference)
             {
             }
 
             /// <summary>
-            /// Level 1 Equities Request
+            /// Level One Equities Request
             /// </summary>
             /// <param name="symbols">comma separated list of symbols</param>
             /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquity.Fields</param>
-            /// <param name="callback">method to call whenever values change</param>
-            public void Request(string symbols, string fields, EquitiesCallback callback)
+            public List<LevelOneEquity> Request(string symbols, string fields)
+            {
+                return Request(symbols, fields, null, null);
+            }
+
+            /// <summary>
+            /// Level One Equities Request
+            /// </summary>
+            /// <param name="symbols">comma separated list of symbols</param>
+            /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquity.Fields</param>
+            /// <param name="equitiesCallback">method to call whenever a LevelOneEquity is processed. </param>
+            public List<LevelOneEquity> Request(string symbols, string fields, EquitiesCallback equitiesCallback)
+            {
+                return Request(symbols, fields, equitiesCallback, null);
+            }
+
+            /// <summary>
+            /// Level One Equities Request
+            /// </summary>
+            /// <param name="symbols">comma separated list of symbols</param>
+            /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquity.Fields</param>
+            /// <param name="LevelOneEquityCallback">method to call whenever a LevelOneEquity is processed. </param>
+            public List<LevelOneEquity> Request(string symbols, string fields, LevelOneEquityCallback levelOneEquityCallback)
+            {
+                return Request(symbols, fields, null, levelOneEquityCallback);
+            }
+
+            /// <summary>
+            /// Level One Equities Request
+            /// </summary>
+            /// <param name="symbols">comma separated list of symbols</param>
+            /// <param name="fields">comma separated list of field indexes like "1,2,3.." - see LevelOneEquity.Fields</param>
+            /// <param name="equitiesCallback">method to call whenever a LevelOneEquity is processed. </param>
+            public List<LevelOneEquity> Request(string symbols, string fields, EquitiesCallback? equitiesCallback, LevelOneEquityCallback? levelOneEquityCallback)
             {
                 SetActiveSymbols(symbols);
                 streamer.ServiceRequest(service, symbols, fields);
-                Callback = callback;
+                this.equitiesCallback = equitiesCallback;
+
+                Data = new List<LevelOneEquity>(); // clear for new service
+                AddSymbolsToDataList(symbols, levelOneEquityCallback);
+                serviceIsActive = true;
+                return Data;
+            }
+
+            private void AddSymbolsToDataList(string symbols, LevelOneEquityCallback? levelOneEquityCallback)
+            {
+                var Symbols = symbols.Split(',');
+                for (var x = 0; x < Symbols.Length; x++)
+                {
+                    var s = Symbols[x].Trim();
+                    var quote = Data.Where(r => r.key == s).SingleOrDefault();
+                    if (quote == null)
+                    {
+                        quote = new LevelOneEquity();
+                        quote.key = s;
+                        quote.Callback = levelOneEquityCallback;
+                        Data.Add(quote);
+                    }
+                }
             }
 
             /// <summary>
@@ -41,10 +109,12 @@ namespace SchwabApiCS
             /// </summary>
             /// <param name="symbols"></param>
             /// <exception cref="SchwabApiException"></exception>
-            public void Add(string symbols)
+            public List<LevelOneEquity> Add(string symbols, LevelOneEquityCallback? levelOneEquityCallback = null)
             {
-                CallbackCheck(Callback, "Add");
+                CheckServiceIsActive();
                 streamer.ServiceAdd(service, symbols, ActiveSymbols);
+                AddSymbolsToDataList(symbols, levelOneEquityCallback);
+                return Data;
             }
 
             /// <summary>
@@ -52,12 +122,14 @@ namespace SchwabApiCS
             /// </summary>
             /// <param name="symbols"></param>
             /// <exception cref="SchwabApiException"></exception>
-            public void Remove(string symbols)
+            public List<LevelOneEquity> Remove(string symbols)
             {
-                CallbackCheck(Callback, "Remove");
+                CheckServiceIsActive();
                 symbols = ActiveSymbolsRemove(symbols);
                 streamer.ServiceRemove(service, symbols);
-                Callback(Data);
+                if (equitiesCallback != null)
+                    equitiesCallback(Data);
+                return Data;
             }
 
             /// <summary>
@@ -67,17 +139,24 @@ namespace SchwabApiCS
             /// <exception cref="SchwabApiException"></exception>
             public void View(string fields)
             {
-                CallbackCheck(Callback, "View");
+                CheckServiceIsActive();
                 streamer.ServiceView(service, fields);
             }
 
             internal override void ProcessResponseSUBS(ResponseMessage.Response response)
             {
-                Data = new List<LevelOneEquity>(); // clear for new service
+                // do nothing
+            }
+
+            internal override void ProcessResponseUNSUBS(ResponseMessage.Response response)
+            {
+                // do nothing
             }
 
             internal override void ProcessData(DataMessage.DataItem d, dynamic content)
             {
+                LevelOneEquity quote;
+
                 for (var i = 0; i < d.content.Count; i++)
                 {
                     var q = d.content[i];
@@ -86,30 +165,27 @@ namespace SchwabApiCS
                     if (!ActiveSymbols.Contains(symbol))
                         continue;  // this one has been removed, but some results my come through for a bit.
 
-                    var quote = Data.Where(r => r.key == symbol).SingleOrDefault();
-                    if (quote == null)
+                    try { 
+                        quote = Data.Where(r => r.key == symbol).Single();
+                    }
+                    catch (Exception ex) {
+                        throw new Exception("LevelOneEquity.ProcessData quote: " + ex.Message);
+                    }
+
+                    if (q.assetMainType != null)  // first time
                     {
-                        try
-                        {
-                            quote = new LevelOneEquity()
-                            {
-                                key = symbol,
-                                delayed = q.delayed,
-                                cusip = q.cusip,
-                                assetMainType = q.assetMainType,
-                                assetSubType = q.assetSubType
-                            };
-                            Data.Add(quote);
-                        }
-                        catch (Exception e)
-                        {
-                            var xx = 1;
-                        }
+                        quote.delayed = q.delayed;
+                        quote.cusip = q.cusip;
+                        quote.assetMainType = q.assetMainType;
+                        quote.assetSubType = q.assetSubType;
                     }
                     quote.timestamp = SchwabApi.ApiDateTime_to_DateTime(d.timestamp);
                     quote.UpdateProperties(content[i]);
+                    if (quote.Callback != null)
+                        quote.Callback(quote); // callback whenever a LevelOneEquity symbol has been processed
                 }
-                Callback(Data); // callback to application with updated values
+                if (equitiesCallback != null)
+                    equitiesCallback(Data); // callback whenever a LevelOneEquities has been processed
             }
 
             internal override void RemoveFromData(string symbol)
@@ -121,8 +197,10 @@ namespace SchwabApiCS
 
         }
 
-        public class LevelOneEquity
+        public class LevelOneEquity : INotifyPropertyChanged
         {
+            public override string ToString() { return $"{Symbol} {Description}"; }
+
             public enum Fields  // Level 1 Equities Fields
             {
                 Symbol,                 // string   Ticker symbol in upper case.
@@ -315,6 +393,18 @@ namespace SchwabApiCS
 
             }
 
+            /// <summary>
+            /// Callback to be called whenever a LevelOneEquity response is processed
+            /// </summary>
+            public LevelOneEquityCallback? Callback = null;
+
+            public event PropertyChangedEventHandler? PropertyChanged;
+            private void Changed([CallerMemberName] string propertyName = "")
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
+
             public string key { get; set; }
             public bool delayed { get; set; }
             public string assetMainType { get; set; }
@@ -324,58 +414,412 @@ namespace SchwabApiCS
 
             // numbered items
             public string Symbol { get; set; } = "";
-            public double BidPrice { get; set; } = 0;
-            public double AskPrice { get; set; } = 0;
-            public double LastPrice { get; set; } = 0;
-            public int BidSize { get; set; } = 0;
-            public int AskSize { get; set; } = 0;
-            public string AskID { get; set; } = "";
-            public string BidID { get; set; } = "";
-            public long TotalVolume { get; set; } = 0;
-            public long LastSize { get; set; } = 0;
-            public double HighPrice { get; set; } = 0;
-            public double LowPrice { get; set; } = 0;
-            public double ClosePrice { get; set; } = 0;
-            public string ExchangeID { get; set; } = "";
-            public bool? Marginable { get; set; }
-            public string Description { get; set; } = "";
-            public string LastID { get; set; } = "";
-            public double OpenPrice { get; set; } = 0;
-            public double NetChange { get; set; } = 0;
-            public double Week52High { get; set; } = 0;
-            public double Week52Low { get; set; } = 0;
-            public double PERatio { get; set; } = 0;
-            public double AnnualDividendAmount { get; set; } = 0;
-            public double DividendYield { get; set; } = 0;
-            public double NAV { get; set; } = 0;
-            public string ExchangeName { get; set; } = "";
-            public DateTime? DividendDate { get; set; }
-            public bool? RegularMarketQuote { get; set; }
-            public bool? RegularMarketTrade { get; set; }
-            public double RegularMarketLastPrice { get; set; } = 0;
-            public long RegularMarketLastSize { get; set; } = 0;
-            public double RegularMarketNetChange { get; set; } = 0;
-            public string SecurityStatus { get; set; } = "";
-            public double MarkPrice { get; set; } = 0;
-            public DateTime? QuoteTime { get; set; }
-            public DateTime? TradeTime { get; set; }
-            public DateTime? RegularMarketTradeTime { get; set; }
-            public DateTime? BidTime { get; set; }
-            public DateTime? AskTime { get; set; }
-            public string AskMicId { get; set; } = "";
-            public string BidMicId { get; set; } = "";
-            public string LastMicId { get; set; } = "";
-            public double NetPercentChange { get; set; } = 0;
-            public double RegularMarketPercentChange { get; set; } = 0;
-            public double MarkPriceNetChange { get; set; } = 0;
-            public double MarkPricePercentChange { get; set; } = 0;
-            public int HardToBorrowQuantity { get; set; } = 0;
-            public double HardToBorrowRate { get; set; } = 0;
-            public int? HardToBorrow { get; set; }
-            public int? Shortable { get; set; }
-            public double PostMarketNetChange { get; set; } = 0;
-            public double PostMarketPercentChange { get; set; } = 0;
 
+
+            // properties with PropertyChanged events
+
+            private double bidPrice = 0;
+            public double BidPrice
+            {
+                get { return bidPrice; }
+                set { bidPrice = value; Changed(); }
+            }
+
+            private double askPrice = 0;
+            public double AskPrice
+            {
+                get { return askPrice; }
+                set { askPrice = value; Changed(); }
+            }
+
+            private double lastPrice = 0;
+            public double LastPrice
+            {
+                get { return lastPrice; }
+                set { lastPrice = value; Changed(); }
+            }
+
+
+            private int bidSize = 0;
+            public int BidSize
+            {
+                get { return bidSize; }
+                set { bidSize = value; Changed(); }
+            }
+
+
+            private int askSize = 0;
+            public int AskSize
+            {
+                get { return askSize; }
+                set { askSize = value; Changed(); }
+            }
+
+
+            private string askID = "";
+            public string AskID
+            {
+                get { return askID; }
+                set { askID = value; Changed(); }
+            }
+
+
+            private string bidID = "";
+            public string BidID
+            {
+                get { return bidID; }
+                set { bidID = value; Changed(); }
+            }
+
+
+            private long totalVolume = 0;
+            public long TotalVolume
+            {
+                get { return totalVolume; }
+                set { totalVolume = value; Changed(); }
+            }
+
+
+            private long lastSize = 0;
+            public long LastSize
+            {
+                get { return lastSize; }
+                set { lastSize = value; Changed(); }
+            }
+
+
+            private double highPrice = 0;
+            public double HighPrice
+            {
+                get { return highPrice; }
+                set { highPrice = value; Changed(); }
+            }
+
+            private double lowPrice = 0;
+            public double LowPrice
+            {
+                get { return lowPrice; }
+                set { lowPrice = value; Changed(); }
+            }
+
+            private double closePrice = 0;
+            public double ClosePrice
+            {
+                get { return closePrice; }
+                set { closePrice = value; Changed(); }
+            }
+
+
+            private string exchangeID = "";
+            public string ExchangeID
+            {
+                get { return exchangeID; }
+                set { exchangeID = value; Changed(); }
+            }
+
+
+            private bool? marginable;
+            public bool? Marginable
+            {
+                get { return marginable; }
+                set { marginable = value; Changed(); }
+            }
+
+
+            private string description = "";
+            public string Description
+            {
+                get { return description; }
+                set { description = value; Changed(); }
+            }
+
+
+            private string lastID = "";
+            public string LastID
+            {
+                get { return lastID; }
+                set { lastID = value; Changed(); }
+            }
+
+
+            private double openPrice = 0;
+            public double OpenPrice
+            {
+                get { return openPrice; }
+                set { openPrice = value; Changed(); }
+            }
+
+
+            private double netChange = 0;
+            public double NetChange
+            {
+                get { return netChange; }
+                set { netChange = value; Changed(); }
+            }
+
+
+            private double week52High = 0;
+            public double Week52High
+            {
+                get { return week52High; }
+                set { week52High = value; Changed(); }
+            }
+            
+
+            private double week52Low = 0;
+            public double Week52Low
+            {
+                get { return week52Low; }
+                set { week52Low = value; Changed(); }
+            }
+
+
+            private double pERatio = 0;
+            public double PERatio
+            {
+                get { return pERatio; }
+                set { pERatio = value; Changed(); }
+            }
+
+
+            private double annualDividendAmount = 0;
+            public double AnnualDividendAmount
+            {
+                get { return annualDividendAmount; }
+                set { annualDividendAmount = value; Changed(); }
+            }
+
+
+            private double dividendYield = 0;
+            public double DividendYield
+            {
+                get { return dividendYield; }
+                set { dividendYield = value; Changed(); }
+            }
+
+
+            private double nav = 0;
+            public double NAV
+            {
+                get { return nav; }
+                set { nav = value; Changed(); }
+            }
+
+
+            private string exchangeName = "";
+            public string ExchangeName
+            {
+                get { return exchangeName; }
+                set { exchangeName = value; Changed(); }
+            }
+
+
+            private DateTime? dividendDate;
+            public DateTime? DividendDate
+            {
+                get { return dividendDate; }
+                set { dividendDate = value; Changed(); }
+            }
+
+
+            private bool? regularMarketQuote;
+            public bool? RegularMarketQuote
+            {
+                get { return regularMarketQuote; }
+                set { regularMarketQuote = value; Changed(); }
+            }
+
+
+            private bool? regularMarketTrade;
+            public bool? RegularMarketTrade
+            {
+                get { return regularMarketTrade; }
+                set { regularMarketTrade = value; Changed(); }
+            }
+
+
+            private double regularMarketLastPrice = 0;
+            public double RegularMarketLastPrice
+            {
+                get { return regularMarketLastPrice; }
+                set { regularMarketLastPrice = value; Changed(); }
+            }
+
+
+            private long regularMarketLastSize = 0;
+            public long RegularMarketLastSize
+            {
+                get { return regularMarketLastSize; }
+                set { regularMarketLastSize = value; Changed(); }
+            }
+
+
+            private double regularMarketNetChange = 0;
+            public double RegularMarketNetChange
+            {
+                get { return regularMarketNetChange; }
+                set { regularMarketNetChange = value; Changed(); }
+            }
+
+
+            private string securityStatus = "";
+            public string SecurityStatus
+            {
+                get { return securityStatus; }
+                set { securityStatus = value; Changed(); }
+            }
+
+
+            private double markPrice = 0;
+            public double MarkPrice
+            {
+                get { return markPrice; }
+                set { markPrice = value; Changed(); }
+            }
+
+
+            private DateTime? quoteTime;
+            public DateTime? QuoteTime
+            {
+                get { return quoteTime; }
+                set { quoteTime = value; Changed(); }
+            }
+
+
+            private DateTime? tradeTime;
+            public DateTime? TradeTime
+            {
+                get { return tradeTime; }
+                set { tradeTime = value; Changed(); }
+            }
+
+
+            private DateTime? regularMarketTradeTime;
+            public DateTime? RegularMarketTradeTime
+            {
+                get { return regularMarketTradeTime; }
+                set { regularMarketTradeTime = value; Changed(); }
+            }
+
+
+            private DateTime? bidTime;
+            public DateTime? BidTime
+            {
+                get { return bidTime; }
+                set { bidTime = value; Changed(); }
+            }
+
+
+            private DateTime? askTime;
+            public DateTime? AskTime
+            {
+                get { return askTime; }
+                set { askTime = value; Changed(); }
+            }
+
+
+            private string askMicId = "";
+            public string AskMicId
+            {
+                get { return askMicId; }
+                set { askMicId = value; Changed(); }
+            }
+
+
+            private string bidMicId = "";
+            public string BidMicId
+            {
+                get { return bidMicId; }
+                set { bidMicId = value; Changed(); }
+            }
+
+
+            private string lastMicId = "";
+            public string LastMicId
+            {
+                get { return lastMicId; }
+                set { lastMicId = value; Changed(); }
+            }
+
+
+            private double netPercentChange = 0;
+            public double NetPercentChange
+            {
+                get { return netPercentChange; }
+                set { netPercentChange = value; Changed(); }
+            }
+
+
+            private double regularMarketPercentChange = 0;
+            public double RegularMarketPercentChange
+            {
+                get { return regularMarketPercentChange; }
+                set { regularMarketPercentChange = value; Changed(); }
+            }
+
+
+            private double markPriceNetChange = 0;
+            public double MarkPriceNetChange
+            {
+                get { return markPriceNetChange; }
+                set { markPriceNetChange = value; Changed(); }
+            }
+
+
+            private double markPricePercentChange = 0;
+            public double MarkPricePercentChange
+            {
+                get { return markPricePercentChange; }
+                set { markPricePercentChange = value; Changed(); }
+            }
+
+
+            private int hardToBorrowQuantity = 0;
+            public int HardToBorrowQuantity
+            {
+                get { return hardToBorrowQuantity; }
+                set { hardToBorrowQuantity = value; Changed(); }
+            }
+
+
+            private double hardToBorrowRate = 0;
+            public double HardToBorrowRate
+            {
+                get { return hardToBorrowRate; }
+                set { hardToBorrowRate = value; Changed(); }
+            }
+
+
+            private int? hardToBorrow;
+            public int? HardToBorrow
+            {
+                get { return hardToBorrow; }
+                set { hardToBorrow = value; Changed(); }
+            }
+
+
+            private int? shortable;
+            public int? Shortable
+            {
+                get { return shortable; }
+                set { shortable = value; Changed(); }
+            }
+
+
+            private double postMarketNetChange = 0;
+            public double PostMarketNetChange
+            {
+                get { return postMarketNetChange; }
+                set { postMarketNetChange = value; Changed(); }
+            }
+
+
+            private double postMarketPercentChange = 0;
+            public double PostMarketPercentChange
+            {
+                get { return postMarketPercentChange; }
+                set { postMarketPercentChange = value; Changed(); }
+            }
         }
     }
 }

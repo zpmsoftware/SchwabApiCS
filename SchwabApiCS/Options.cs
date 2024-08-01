@@ -155,21 +155,86 @@ namespace SchwabApiCS
 
         public class OptionChainParameters
         {
+            /// <summary>
+            /// Contract Type: CALL, PUT, ALL
+            /// </summary>
             public ContractType? contractType { get; set; }
+
+            /// <summary>
+            /// The Number of strikes to return above and below the at-the-money price
+            /// strikeCount=4 will return 4 call options and 4 put options
+            /// </summary>
             public int? strikeCount { get; set; }
+
+            /// <summary>
+            /// Underlying quotes to be included
+            /// </summary>
             public bool? includeUnderlyingQuote { get; set; }
+
+            /// <summary>
+            /// Strike interval for spread strategy chains (see strategy param)
+            /// </summary>
             public decimal? interval { get; set; }
+
+            /// <summary>
+            /// Strike Price
+            /// </summary>
             public decimal? strike { get; set; }
+
+            /// <summary>
+            /// From expiration date (use for filtering)
+            /// </summary>
             public DateTime? fromDate { get; set; }
+
+            /// <summary>
+            /// To expiration date (use for filtering)
+            /// </summary>
             public DateTime? toDate { get; set; }
+
+            /// <summary>
+            /// Volatility to use in calculations. Applies only to ANALYTICAL strategy chains (see strategy param)
+            /// </summary>
             public decimal? volatility { get; set; }
+
+            /// <summary>
+            /// Underlying price to use in calculations. Applies only to ANALYTICAL strategy chains (see strategy param)
+            /// </summary>
             public decimal? underlyingPrice { get; set; }
+
+            /// <summary>
+            /// Interest rate to use in calculations. Applies only to ANALYTICAL strategy chains (see strategy param)
+            /// </summary>
             public decimal? interestRate { get; set; }
+
+            /// <summary>
+            /// Days to expiration to use in calculations. Applies only to ANALYTICAL strategy chains (see strategy param)
+            /// </summary>
             public int? daysToExpiration { get; set; }
+
+            /// <summary>
+            /// ?
+            /// </summary>
             public string? optionType { get; set; }
+
+            /// <summary>
+            /// OptionChain strategy. Default is SINGLE. ANALYTICAL allows the use of volatility, 
+            /// underlyingPrice, interestRate, and daysToExpiration params to calculate theoretical values.
+            /// </summary>
             public OptionStrategy? strategy { get; set; }
+
+            /// <summary>
+            /// Range(ITM/NTM/OTM etc.)
+            /// </summary>
             public OptionRange? range { get; set; }
+
+            /// <summary>
+            /// Expiration month: JAN, ... DEC, ALL
+            /// </summary>
             public OptionExpMonth? expMonth { get; set; }
+
+            /// <summary>
+            /// Applicable only if its retail token, entitlement of client PP-PayingPro, NP-NonPro and PN-NonPayingPro
+            /// </summary>
             public OptionEntitlement? entitlement { get; set; }
         }
 

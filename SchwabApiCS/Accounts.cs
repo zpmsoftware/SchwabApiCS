@@ -199,12 +199,19 @@ namespace SchwabApiCS
                               decimal marginBalance, decimal shortBalance, decimal accountValue, decimal? cashAvailableForWithdrawal,
                               decimal? unsettledCash, decimal? cashDebitCallValue);
                 public record Instrument(string assetType, string cusip, string symbol, string description, decimal netChange, string type,
-                              DateTime? maturityDate, decimal? variableRate);
+                              DateTime? maturityDate, decimal? variableRate, string? putCall, string? underlyingSymbol);
                 public record Position(decimal shortQuantity, decimal averagePrice, decimal currentDayProfitLoss,
                               decimal currentDayProfitLossPercentage, decimal longQuantity, decimal settledLongQuantity,
                               decimal settledShortQuantity, decimal agedQuantity, Instrument instrument, decimal marketValue,
                               decimal maintenanceRequirement, decimal averageLongPrice, decimal taxLotAverageLongPrice,
-                              decimal longOpenProfitLoss, decimal previousSessionLongQuantity, decimal currentDayCost);
+                              decimal longOpenProfitLoss, decimal previousSessionLongQuantity, decimal currentDayCost)
+                {
+                    public override string ToString()
+                    {
+                        return instrument.symbol + ", Qty=" + (longQuantity != 0 ? longQuantity : -shortQuantity).ToString();
+                    }
+                }
+
                 public record ProjectedBalances(decimal availableFunds, decimal availableFundsNonMarginableTrade, decimal buyingPower,
                               decimal dayTradingBuyingPower, decimal dayTradingBuyingPowerCall, decimal maintenanceCall, decimal regTCall,
                               bool isInCall, decimal stockBuyingPower, decimal? cashAvailableForTrading, decimal? cashAvailableForWithdrawal);
