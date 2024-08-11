@@ -87,6 +87,11 @@ namespace SchwabApiCS
             return SchwabApi.GetEnum<SchwabApiCS.Order.OrderType>(orderType);
         }
 
+        public static SchwabApiCS.Order.Status GetOrderStatus(string orderStatus)
+        {
+            return SchwabApi.GetEnum<SchwabApiCS.Order.Status>(orderStatus);
+        }
+
         public static SchwabApiCS.Order.AssetType GetAssetType(string assetType)
         {
             if (assetType == "COLLECTIVE_INVESTMENT")
@@ -241,7 +246,7 @@ namespace SchwabApiCS
         {
             AWAITING_PARENT_ORDER, AWAITING_CONDITION, AWAITING_STOP_CONDITION, AWAITING_MANUAL_REVIEW,
             ACCEPTED, AWAITING_UR_OUT, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
-            CANCELED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED, NEW, AWAITING_RELEASE_TIME,
+            CANCELED, PENDING_REPLACE, REPLACED,FILLED, EXPIRED, NEW, AWAITING_RELEASE_TIME,
             PENDING_ACKNOWLEDGEMENT, PENDING_RECALL, UNKNOWN
         };
         public enum AmountIndicator { DOLLARS, SHARES, ALL_SHARES, PERCENTAGE, UNKNOWN };

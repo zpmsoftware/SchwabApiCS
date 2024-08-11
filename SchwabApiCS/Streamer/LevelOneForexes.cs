@@ -95,6 +95,7 @@ namespace SchwabApiCS
                             quote = new LevelOneForex()
                             {
                                 key = symbol,
+                                Symbol = symbol,
                                 delayed = q.delayed,
                                 assetMainType = q.assetMainType,
                             };

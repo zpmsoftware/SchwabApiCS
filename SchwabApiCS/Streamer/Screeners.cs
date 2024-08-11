@@ -116,6 +116,7 @@ namespace SchwabApiCS
                             quote = new Screener()
                             {
                                 key = symbol,
+                                Symbol = symbol,
                                 delayed = q.delayed,
                                 cusip = q.cusip,
                                 assetMainType = q.assetMainType,

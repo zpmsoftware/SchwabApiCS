@@ -114,7 +114,7 @@ namespace SchwabApiCS
 
         internal static SchwabTokens schwabTokens;
         internal IList<AccountNumber> accountNumberHashs; // load once
-        const string utcDateFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
+        internal const string utcDateFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
         internal static JsonSerializerSettings jsonSettings = new JsonSerializerSettings() { MissingMemberHandling = MissingMemberHandling.Error };
 
         /// <summary>
@@ -357,6 +357,7 @@ namespace SchwabApiCS
         // =========== Date & Time ==================================================================
         /// <summary>
         /// Schwab API start time. add schwab's milliseconds (long) to epoch to get DateTime
+        /// Schwab's server is on eastern time
         /// </summary>
         static DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-5); // adjust for time zone
 
@@ -534,16 +535,29 @@ namespace SchwabApiCS
         /// Format Symbol for Display
         /// </summary>
         /// <param name="symbol"></param>
+        /// <param name="format">format option</param>
         /// <returns></returns>
-        public static string SymbolDisplay(string symbol)
+        public static string SymbolDisplay(string symbol, int format = 0)
         {
             if (symbol.Contains(' ')) // parse option symbol
             {
-                var s = symbol.Substring(0, 6) + "20" + symbol.Substring(6, 2) + "-" + symbol.Substring(8, 2) + "-" + symbol.Substring(10, 2) +
-                        (symbol[12] == 'C' ? " Call " : " Put ") + symbol.Substring(13, 5).TrimStart('0') + "." +
-                        (symbol[20] == '0' ? symbol.Substring(18,2) : symbol.Substring(18));
-                return s;
+                string s;
+                switch (format) {
+                    case 0: // SPY 2024-09-20 Call 543.00
+                        s = symbol.Substring(0, 6) + "20" + symbol.Substring(6, 2) + "-" + symbol.Substring(8, 2) + "-" +
+                            symbol.Substring(10, 2) + (symbol[12] == 'C' ? " Call " : " Put ") + 
+                            symbol.Substring(13, 5).TrimStart('0') + "." +
+                            (symbol[20] == '0' ? symbol.Substring(18, 2) : symbol.Substring(18));
+                        return s;
 
+                    case 1: // SPY 09/20/24 543 Call, SPY 09/20/24 543.50 Call
+                        s = symbol.Substring(0, 6) + symbol.Substring(8, 2) + "/" + symbol.Substring(10, 2) + "/" +
+                            symbol.Substring(6, 2) + " " + symbol.Substring(13, 5).TrimStart('0');
+                            if (symbol.Substring(18,3)!="000")
+                               s += "." + (symbol[20] == '0' ? symbol.Substring(18, 2) : symbol.Substring(18)); // could be 3 decimals.
+                        s += (symbol[12] == 'C' ? " Call" : " Put");
+                        return s;
+                }
             }
             return symbol;
         }

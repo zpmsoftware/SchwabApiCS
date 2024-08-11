@@ -95,6 +95,7 @@ namespace SchwabApiCS
                             quote = new LevelOneFuture()
                             {
                                 key = symbol,
+                                Symbol = symbol,
                                 delayed = q.delayed,
                                 cusip = q.cusip,
                                 assetMainType = q.assetMainType,

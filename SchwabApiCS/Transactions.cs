@@ -108,7 +108,7 @@ namespace SchwabApiCS
                 var text = accountNumber + time.ToString("  yyyy-MM-dd HH:mmtt:").ToLower();
                 foreach (var t in ti)
                 {
-                    text += "  " + t.instrument.symbol + "  Qty=" + t.amount.ToString() +
+                    text += "  " + t.instrument.symbol + " " + t.positionEffect + "  Qty=" + t.amount.ToString() +
                              (t.price == null ? "" : ", Price=" + ((decimal)t.price).ToString("C2"));
                 }
                 return text;

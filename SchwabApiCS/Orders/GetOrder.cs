@@ -3,10 +3,6 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-using System;
-
-// https://json2csharp.com/
-
 namespace SchwabApiCS
 {
     public partial class SchwabApi
@@ -15,53 +11,26 @@ namespace SchwabApiCS
 
         /// <summary>
         /// Get orders for all accounts
+        /// All orders placed in the date range *OR* open during the date range
+        /// If you want today's orders, use DateTime.Now, or DateTime.Today.AddDays(1)
         /// </summary>
         /// <param name="apiClient"></param>
         /// <returns></returns>
-        public IList<Order> GetOrders(DateTime fromDate, DateTime toDate)
+        public IList<Order> GetOrders(DateTime fromDate, DateTime toDate, Order.Status? status = null, int? maxResults = null)
         {
-            return WaitForCompletion(GetOrdersAsync(fromDate, toDate));
+            return WaitForCompletion(GetOrdersAsync(fromDate, toDate, status, maxResults));
         }
 
         /// <summary>
         /// Get orders for all accounts async
+        /// All orders placed in the date range *OR* open during the date range
+        /// If you want today's orders, use DateTime.Now, or DateTime.Today.AddDays(1)
         /// </summary>
         /// <param name="fromDate"></param>
         /// <param name="toDate"></param>
         /// <returns></returns>
-        public async Task<ApiResponseWrapper<IList<Order>>> GetOrdersAsync(DateTime fromDate, DateTime toDate)
-        {
-            const string utcDateFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
-            string fDate = fromDate.ToUniversalTime().ToString(utcDateFormat);
-            string tDate = toDate.ToUniversalTime().ToString(utcDateFormat);
-
-            return await Get<IList<Order>>(OrdersBaseUrl + "/orders?fromEnteredTime=" + fDate + "&toEnteredTime=" + tDate);
-        }
-
-
-        /// <summary>
-        /// Get Orders for a specific account
-        /// </summary>
-        /// <param name="accountNumber">account number or accountNumberHash</param>
-        /// <param name="fromDate"></param>
-        /// <param name="toDate"></param>
-        /// <param name="status">null or single status</param>
-        /// <returns></returns>
-        public IList<Order> GetOrders(string accountNumber, DateTime fromDate, DateTime toDate, Order.Status? status = null)
-        {
-            return WaitForCompletion(GetOrdersAsync(accountNumber, fromDate, toDate, status));
-        }
-
-        /// <summary>
-        /// Get Orders for a specific account async
-        /// If orders outside of a date range are still open within the specified date range, they are included
-        /// </summary>
-        /// <param name="accountNumber">account number or accountNumberHash</param>
-        /// <param name="fromDate">required</param>
-        /// <param name="toDate">required</param>
-        /// <param name="status">optional or single status</param>
-        /// <returns></returns>
-        public async Task<ApiResponseWrapper<IList<Order>>> GetOrdersAsync(string accountNumber, DateTime fromDate, DateTime toDate, Order.Status? status = null)
+        public async Task<ApiResponseWrapper<IList<Order>>> GetOrdersAsync(DateTime fromDate, DateTime toDate,
+                                                                           Order.Status? status = null, int? maxResults = null)
         {
             string fDate = fromDate.ToUniversalTime().ToString(utcDateFormat);
             string tDate = toDate.ToUniversalTime().ToString(utcDateFormat);
@@ -69,6 +38,50 @@ namespace SchwabApiCS
 
             if (status != null)
                 parms += "&status=" + status.ToString();
+            if (maxResults != null)
+                parms += "&maxResults=" + maxResults.ToString();
+
+            return await Get<IList<Order>>(OrdersBaseUrl + "/orders?" + parms);
+        }
+
+
+        /// <summary>
+        /// Get Orders for a specific account
+        /// All orders placed in the date range *OR* open during the date range
+        /// If you want today's orders, use DateTime.Now, or DateTime.Today.AddDays(1) 
+        /// </summary>
+        /// <param name="accountNumber">account number or accountNumberHash</param>
+        /// <param name="fromDate"></param>
+        /// <param name="toDate"></param>
+        /// <param name="status">null or single status</param>
+        /// <returns></returns>
+        public IList<Order> GetOrders(string accountNumber, DateTime fromDate, DateTime toDate,
+                                      Order.Status? status = null, int? maxResults = null)
+        {
+            return WaitForCompletion(GetOrdersAsync(accountNumber, fromDate, toDate, status, maxResults));
+        }
+
+        /// <summary>
+        /// Get Orders for a specific account async
+        /// All orders placed in the date range *OR* open during the date range
+        /// If you want today's orders, use DateTime.Now, or DateTime.Today.AddDays(1) 
+        /// </summary>
+        /// <param name="accountNumber">account number or accountNumberHash</param>
+        /// <param name="fromDate">required</param>
+        /// <param name="toDate">required</param>
+        /// <param name="status">optional or single status</param>
+        /// <returns></returns>
+        public async Task<ApiResponseWrapper<IList<Order>>> GetOrdersAsync(string accountNumber, DateTime fromDate, DateTime toDate,
+                                                                           Order.Status? status = null, int? maxResults=null)
+        {
+            string fDate = fromDate.ToUniversalTime().ToString(utcDateFormat);
+            string tDate = toDate.ToUniversalTime().ToString(utcDateFormat);
+            string parms = $"fromEnteredTime={fDate}&toEnteredTime={tDate}";
+
+            if (status != null)
+                parms += "&status=" + status.ToString();
+            if (maxResults != null)
+                parms += "&maxResults=" + maxResults.ToString();
             var t = await Get<IList<Order>>(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders?" + parms);
             return t;
         }

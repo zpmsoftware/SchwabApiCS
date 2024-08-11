@@ -98,6 +98,7 @@ namespace SchwabApiCS
                     {
                         quote = new LevelOneEquity();
                         quote.key = s;
+                        quote.Symbol = s;
                         quote.Callback = levelOneEquityCallback;
                         Data.Add(quote);
                     }

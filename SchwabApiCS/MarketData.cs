@@ -289,6 +289,9 @@ namespace SchwabApiCS
                 public string description { get; set; }
                 public string exchange { get; set; }
                 public string exchangeName { get; set; }
+                public string? fsiCode { get; set; }
+                public string? fsiDesc { get; set; }
+
                 public string? otcMarketTier { get; set; }
                 public bool? isHardToBorrow { get; set; }
                 public bool? isShortable { get; set; }
@@ -405,9 +408,12 @@ namespace SchwabApiCS
                         break;
 
                     case FrequencyType.minute: // check for duplicates, sometimes on current day (at night? 1am)
+                        // on prior days it returns more than requested, filter those out.
                         if (result.Data.candles.Count > 1)
                         {
-                            var candles = result.Data.candles.OrderBy(r => r.dateTime).ToList();
+                            var candles = result.Data.candles
+                                                .Where(r=> (startDate == null || r.dateTime >= startDate) && (endDate == null || r.dateTime <= endDate)) 
+                                                .OrderBy(r => r.dateTime).ToList();
                             for (var x = candles.Count-1; x > 0; x--)
                             {
                                 if (candles[x-1].dateTime == candles[x].dateTime)
@@ -418,7 +424,6 @@ namespace SchwabApiCS
                         break;
                 }
             }
-
             return result;
         }
 
