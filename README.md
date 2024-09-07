@@ -4,7 +4,8 @@ SchwabApiCS includes a WPF library that launches the Schwab reauthorization page
 Connect on discord.com server SchwabApiCS-C#  [https://discord.gg/ebaZUqVa](https://discord.gg/RpHtYzrNsT)
 
 Video - Getting Started - what to to when starting the first time: 
-
+    (This is a little out of date as some things have changed since the video was made, but still good context)
+    
     https://u.pcloud.link/publink/show?code=XZrmLs0ZmbxI8ETu4b8Jyfor6VxyYkyEN4s7
     
 Video - Explains exception handling in SchwabApiCS: 
