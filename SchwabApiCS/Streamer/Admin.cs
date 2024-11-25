@@ -9,7 +9,6 @@ using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
 using static SchwabApiCS.Streamer.StreamerRequests;
 using System.Security.Authentication;
-using System.Windows.Controls;
 using static SchwabApiCS.Streamer.LevelOneEquity;
 using static SchwabApiCS.Streamer.ResponseMessage;
 using static SchwabApiCS.Streamer;
