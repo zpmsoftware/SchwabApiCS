@@ -3,6 +3,17 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+using System;
+using Newtonsoft.Json;
+using System.ComponentModel;
+using static SchwabApiCS.SchwabApi;
+using static SchwabApiCS.Streamer.StreamerRequests;
+using System.Security.Authentication;
+using System.Windows.Controls;
+using static SchwabApiCS.Streamer.LevelOneEquity;
+using static SchwabApiCS.Streamer.ResponseMessage;
+using static SchwabApiCS.Streamer;
+
 namespace SchwabApiCS
 {
     public partial class Streamer

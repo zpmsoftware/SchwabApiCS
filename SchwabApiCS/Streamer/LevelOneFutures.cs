@@ -12,7 +12,7 @@ namespace SchwabApiCS
 {
     public partial class Streamer
     {
-        public class LevelOneFuturesService : Service
+        public class LevelOneFuturesService : Service  // Not implemented by Schwab yet
         {
             public delegate void LevelOneFuturesCallback(List<LevelOneFuture> data);
 

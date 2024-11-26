@@ -21,7 +21,7 @@ namespace SchwabApiCS_WPF
     public class ApiAuthorize
     {
         /// <summary>
-        /// Schwab Authorization - opens web browser to https://api.schwabapi.com/v1/oauth/authorize?client_id
+        /// Schwab Authorization - opens web browsert to https://api.schwabapi.com/v1/oauth/authorize?client_id
         /// and saves the response tokens in tokenDataFileName.
         /// Only need to call when SchwabTokens.NeedsReAuthorization is true.
         /// </summary>

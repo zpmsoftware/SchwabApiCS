@@ -19,7 +19,7 @@ namespace SchwabApiCS
         public LevelOneOptionsService LevelOneOptions;
         public AccountActivityService AccountActivities;
         public LevelOneFuturesService LevelOneFutures;
-        public LevelOneFuturesOptionsService LevelOneFuturesOptions;
+        // public LevelOneFuturesOptionsService LevelOneFutures; -- Not implemented by Schwab yet 
         public LevelOneForexesService LevelOneForexes;
 
         public NasdaqBookService NasdaqBooks;
@@ -28,7 +28,6 @@ namespace SchwabApiCS
 
         public ChartEquitiesService ChartEquities;
         public ChartFuturesService ChartFutures;
-        public ChartFuturesService ChartFuturesOptions;
         //public ScreenerEquitiesService ScreenerEquities; -- Not implemented by Schwab yet
         //public ScreenerOptionsService ScreenerOptions;  -- Not implemented by Schwab yet
 
@@ -54,7 +53,7 @@ namespace SchwabApiCS
             ServiceList.Add(LevelOneEquities = new LevelOneEquitiesService(this, "LevelOneEquities"));
             ServiceList.Add(LevelOneOptions = new LevelOneOptionsService(this, "LevelOneOptions"));
             ServiceList.Add(LevelOneFutures = new LevelOneFuturesService(this, "LevelOneFutures"));
-            ServiceList.Add(LevelOneFuturesOptions = new LevelOneFuturesOptionsService(this, "LevelOneFuturesOptions")); //-- Not implemented by Schwab yet
+            // ServiceList.Add(LevelOneFuturesOptions = new LevelOneFuturesOptionsService(this, "LevelOneFuturesOptions")); -- Not implemented by Schwab yet
             ServiceList.Add(LevelOneForexes = new LevelOneForexesService(this, "LevelOneForexes"));
 
             ServiceList.Add(NyseBooks = new NyseBookService(this, "NyseBooks"));

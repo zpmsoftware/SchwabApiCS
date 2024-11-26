@@ -3,6 +3,7 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Data;
@@ -126,17 +127,6 @@ namespace SchwabApiCS
 
         public class Quote
         {
-            public override string ToString()
-            {
-                if (invalidSymbols != null)
-                    return $"Invalid Symbols:  {string.Join(", ", (string[])invalidSymbols)}";
-
-                if (reference.product != null && reference.product != symbol) // future front month
-                    return $"{reference.product} - ({symbol}) {assetMainType} {reference.description}, Mark ${quote.mark}";
-
-                return $"{symbol} - {assetMainType} {reference.description}, Mark ${quote.mark}";
-             }
-
             public string assetMainType { get; set; }
             public string assetSubType { get; set; }
             public string quoteType { get; set; }
@@ -299,7 +289,7 @@ namespace SchwabApiCS
                 public string description { get; set; }
                 public string exchange { get; set; }
                 public string exchangeName { get; set; }
-                public string? fsiCode { get; set; } // Financial status indicator, https://www.schwab.com/public/schwab/nn/qq/financial_status_indicator.html
+                public string? fsiCode { get; set; }
                 public string? fsiDesc { get; set; }
 
                 public string? otcMarketTier { get; set; }
@@ -497,25 +487,6 @@ namespace SchwabApiCS
                                     close = r.Last<Candle>().close,
                                 }).ToList();
                 return hourCandles;
-            }
-
-            /// <summary>
-            /// Create a weekly candle set from current day candles. 
-            /// </summary>
-            /// <returns></returns>
-            public List<Candle> WeeklyCandles()
-            {
-                var weeklyCcandles = candles.GroupBy(r => r.dateTime.AddDays(1 - (int)r.dateTime.DayOfWeek) ) // change date to Monday date of week
-                                .Select(r => new Candle()
-                                {
-                                    datetime = SchwabApi.DateTime_to_ApiDateTime(r.Key),
-                                    volume = r.Sum(r => r.volume),
-                                    high = r.Max(r => r.high),
-                                    low = r.Min(r => r.low),
-                                    open = r.First<Candle>().open,
-                                    close = r.Last<Candle>().close,
-                                }).ToList();
-                return weeklyCcandles;
             }
         }
 

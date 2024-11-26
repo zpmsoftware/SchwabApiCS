@@ -2,28 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
-	<UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Content\Refresh.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2651.64" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.51" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SchwabApiCS\SchwabApiCS.csproj" />
-    <ProjectReference Include="..\ZpmStockCharts\ZpmPriceCharts.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Content\Refresh.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
   </ItemGroup>
 
 </Project>
