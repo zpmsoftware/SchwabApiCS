@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Navigation;
 using static SchwabApiCS.SchwabApi;
 using static SchwabApiCS.Streamer;
+using static SchwabApiCS.Streamer.AccountActivity.ExecutionRequested;
 using static SchwabApiCS.Streamer.LevelOneEquitiesService;
 
 namespace SchwabApiTest
@@ -44,8 +45,8 @@ namespace SchwabApiTest
                 var p = resourcesPath.IndexOf(@"\SchwabApiTest\");
                 if (p != -1)
                     resourcesPath = resourcesPath.Substring(0, p + 15);
-                tokenDataFileName = resourcesPath + "SchwabTokens.json"; // located in the project folder.
-
+                //tokenDataFileName = resourcesPath + "SchwabTokens.json"; // located in the project folder.
+				tokenDataFileName = @"D:\Users\Gary\Documents\VSProjects\TS\Trading\SchwabApiTest\SchwabTokens.json";
 
                 schwabTokens = new SchwabTokens(tokenDataFileName); // gotta get the tokens First.
                 if (schwabTokens.NeedsReAuthorization)
@@ -60,7 +61,8 @@ namespace SchwabApiTest
                 }
                 catch (Exception ex)
                 {
-                    if (ex.Message.StartsWith("error: 400 GetAccessToken: Token Authorization failed.400: Bad Request")) {  // refresh token expired?
+                    if (ex.Message.StartsWith("error: 400 GetAccessToken: Token Authorization failed.400: Bad Request"))
+                    {  // refresh token expired?
                         // RefreshTokenExpires must be incorrect. Shouldn't get here normally.
                         SchwabApiCS_WPF.ApiAuthorize.Open(tokenDataFileName);
                         schwabTokens = new SchwabTokens(tokenDataFileName); // reload changes
@@ -130,6 +132,7 @@ namespace SchwabApiTest
         private void AppStart()
         {
             // application code starts here =============================
+            PriceChart1.schwabApi = schwabApi;
 
             // for the Class Converter
             foreach (var st in Streamer.AccountActivityService.AccountActivityClasses)
@@ -166,12 +169,17 @@ namespace SchwabApiTest
 
             foreach (var a in accounts)
             {
-                var acct = new Acct() {
+                var acct = new Acct()
+                {
                     AccountNumber = a.securitiesAccount.accountNumber,
                     AccountName = a.securitiesAccount.accountPreferences.nickName,
                     LiquidationValue = a.securitiesAccount.currentBalances.liquidationValue,
-                    CashBalance = a.securitiesAccount.currentBalances.cashBalance,
-                    PositionPL = new decimal[symbols.Count]
+                    PositionPL = new decimal[symbols.Count],
+
+                    CashBalance = a.securitiesAccount.projectedBalances.cashAvailableForTrading ?? a.securitiesAccount.projectedBalances.availableFunds
+                    // other options to try for "Cash" depending on you account type and needs
+                    //CashBalance = a.securitiesAccount.currentBalances.cashBalance
+                    // CashBalance = a.securitiesAccount.currentBalances.buyingPower
                 };
                 accts.Add(acct);
                 if (a.securitiesAccount.positions != null)
@@ -227,12 +235,21 @@ namespace SchwabApiTest
             });
         }
 
-        public void FuturesStreamerCallback(List<Streamer.LevelOneFuture> levelOneOptions)
+        public void FuturesStreamerCallback(List<Streamer.LevelOneFuture> list)
         {
             OptionsList.Dispatcher.Invoke(() =>
             {
                 FuturesList.ItemsSource = null; // to force refresh
-                FuturesList.ItemsSource = levelOneOptions.OrderBy(r => r.Symbol).ToList();
+                FuturesList.ItemsSource = list.OrderBy(r => r.Symbol).ToList();
+            });
+        }
+
+        public void FuturesOptionsStreamerCallback(List<Streamer.LevelOneFutureOption> list)
+        {
+            OptionsList.Dispatcher.Invoke(() =>
+            {
+                FuturesOptionsList.ItemsSource = null; // to force refresh
+                FuturesOptionsList.ItemsSource = list.OrderBy(r => r.Symbol).ToList();
             });
         }
 
@@ -308,11 +325,12 @@ namespace SchwabApiTest
             return accounts[0].securitiesAccount.accountNumber; // use first in list
         }
 
+
+
         public async Task<string> Test()
         {
             try  // see SchwabApi.cs for list of methods
             {
-
                 // general account methods =====================================
                 var accountHashes = schwabApi.GetAccountNumbers();  // Note: all methods will translate accountNumbers to accountHash as needed
                 accounts = schwabApi.GetAccounts(true);
@@ -322,15 +340,17 @@ namespace SchwabApiTest
                 // add file AccountNumberForTesting.txt to use a different account for testing
                 var accountNumber = GetAccountNumberForTesting();
 
+
                 // Option Chain  =====================================
                 var ocp = new OptionChainParameters
                 {
                     contractType = SchwabApi.ContractType.ALL,
-                    //strike = 210,
+                    strike = 230,
                     fromDate = DateTime.Today,
                     toDate = DateTime.Today.AddDays(30)
                 };
                 var aaplOptions = schwabApi.GetOptionChain("AAPL", ocp);
+                var ac = aaplOptions.calls[3];
 
 
                 // start streamer services  =====================================
@@ -362,6 +382,8 @@ namespace SchwabApiTest
                 // streamer.LevelOneEquities.View(Streamer.LevelOneEquities.AllFields); -- not working yet
 
                 streamer.LevelOneFutures.Request("/ES,/CL,/GC,/SI", LevelOneFuture.CommonFields, FuturesStreamerCallback);
+                streamer.LevelOneFuturesOptions.Request("./ESZ24C6000", LevelOneFutureOption.AllFields, FuturesOptionsStreamerCallback);
+
                 streamer.LevelOneForexes.Request("USD/JPY", LevelOneForex.AllFields, LevelOneForexesStreamerCallback);
 
                 streamer.ChartEquities.Request("AAPL,SPY", ChartEquity.AllFields, ChartEquitiesStreamerCallback);
@@ -386,6 +408,9 @@ namespace SchwabApiTest
                 TaskJson.Text = JsonConvert.SerializeObject(taskAppl, Formatting.Indented); // display in MainWindow
 
                 var quotes = schwabApi.GetQuotes("IWM,SPY,USO,InvalidSymbol,MU    240809P00121000,/ES,USD/JPY", true);
+
+                var aaplInstrument = schwabApi.GetInstrumentsBySymbol("TSLA", SearchBy.fundamental);
+                //var applShort = aaplInstrument[0].fundamental.shortIntToFloat;
 
                 // uncomment lines below for more testing  ===========================================
                 /*
@@ -437,8 +462,7 @@ namespace SchwabApiTest
                 var aaplDayPrices1 = schwabApi.GetPriceHistory("AAPL", SchwabApi.PeriodType.year, 1, SchwabApi.FrequencyType.daily,
                                                             1, DateTime.Today.AddDays(-8), DateTime.Today.AddDays(1), false); // this picks up todays price
                 var aapl15minPrices = schwabApi.GetPriceHistory("AAPL", SchwabApi.PeriodType.day, 1, SchwabApi.FrequencyType.minute,
-                                                                15, DateTime.Today.AddDays(-2), DateTime.Today.AddDays(1), true);
-
+                                                               15, DateTime.Today.AddDays(-2), DateTime.Today.AddDays(1), true);
                 //TestExceptionHandling(); // uncomment to test
             }
             catch (Exception ex)
@@ -455,8 +479,8 @@ namespace SchwabApiTest
             var pQuote = schwabApi.GetQuote("GLD"); // change this symbol to one you have a postion in
 
             // place a OCO bracket order to close a GLD position
-            var ocoTask = schwabApi.OrderOCOBracketAsync(accountNumber, pQuote.symbol, Order.GetAssetType(pQuote.assetMainType), Order.Duration.DAY, Order.Session.NORMAL,
-                                                         -1, pQuote.quote.mark + 20, pQuote.quote.mark - 20);  // qty is negative to sell
+            //var ocoOrderNumber = schwabApi.OrderOCOBracket(accountNumber, pQuote.symbol, Order.GetAssetType(pQuote.assetMainType), Order.Duration.DAY, Order.Session.NORMAL,
+            //                                             -1, pQuote.quote.mark + 20, pQuote.quote.mark - 20);  // qty is negative to sell
 
             var limitOrder = schwabApi.OrderSingle(accountNumber, pQuote.symbol, Order.GetAssetType(pQuote.assetMainType), Order.OrderType.LIMIT, Order.Session.NORMAL,
                                                    Order.Duration.DAY, Order.Position.TO_OPEN, 1, pQuote.quote.mark - 20); // -20 shouldn't fill.
@@ -476,7 +500,6 @@ namespace SchwabApiTest
             {
                 var result = schwabApi.OrderExecuteDelete(accountNumber, (long)stopLoss); // delete order just created
             }
-
 
             // OrderFirstTriggersSecond ==================================
             //  build first order
@@ -539,7 +562,8 @@ namespace SchwabApiTest
             if (!taskErr.Result.HasError) // do this to stop a throw if not desired.
             {
                 var d = taskErr.Result.Data;  // safe to access data.
-            } else
+            }
+            else
             { // will get there because acocunt# is bad.
                 var msg = taskErr.Result.Message;
                 var url = taskErr.Result.Url;
@@ -560,7 +584,8 @@ namespace SchwabApiTest
 
         private void ClassBuilder_TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            try {
+            try
+            {
                 var classType = ((ComboBoxItem)cbConvertToClass.SelectedValue).Content.ToString();
                 var root = "";
                 bool isClass = (classType == "Parent/Child classes");
@@ -654,7 +679,8 @@ namespace SchwabApiTest
                     throw new Exception("unexpected text on line " + i.ToString());
             }
 
-            if (!isClass && classCode.Length > 130) {
+            if (!isClass && classCode.Length > 130)
+            {
                 var code = classCode;
                 classCode = "";
                 while (code.Length > 125)
@@ -757,6 +783,7 @@ namespace SchwabApiTest
             public LevelOneEquity Add(string symbol, LevelOneEquityCallback? callback, PropertyCallback? propertyCallback)
             {
                 LevelOneEquity? d;
+                symbol = symbol.ToUpper();
 
                 if (data == null) // first symbol added, initialize streamer
                 {
@@ -834,7 +861,8 @@ namespace SchwabApiTest
                 if (data != null)
                 {
                     var si = symbolItems.Where(r => r.Symbol == symbol).SingleOrDefault();
-                    if (si != null) {
+                    if (si != null) 
+                    {
                         var cb = si.Callbacks.Where(r => r == callback).SingleOrDefault();
                         if (cb != null)
                             si.Callbacks.Remove(cb);

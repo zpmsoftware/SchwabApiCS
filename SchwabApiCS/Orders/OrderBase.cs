@@ -76,7 +76,7 @@ namespace SchwabApiCS
         }
 
         /// <summary>
-        /// Schwab rule: orders aboive $1 can only have 2 decimals.
+        /// Schwab rule: orders above $1 can only have 2 decimals.
         /// </summary>
         /// <param name="price"></param>
         /// <returns></returns>

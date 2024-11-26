@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiCS_WPF", "SchwabAp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiAuthorize", "SchwabApiAuthorize\SchwabApiAuthorize.csproj", "{9560B8E5-E54C-4486-8691-C4FDBD006BEA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZpmPriceCharts", "ZpmStockCharts\ZpmPriceCharts.csproj", "{4C4546E5-F39C-42C4-9BBF-301EF1F8E7DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{9560B8E5-E54C-4486-8691-C4FDBD006BEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9560B8E5-E54C-4486-8691-C4FDBD006BEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9560B8E5-E54C-4486-8691-C4FDBD006BEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C4546E5-F39C-42C4-9BBF-301EF1F8E7DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C4546E5-F39C-42C4-9BBF-301EF1F8E7DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C4546E5-F39C-42C4-9BBF-301EF1F8E7DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C4546E5-F39C-42C4-9BBF-301EF1F8E7DA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

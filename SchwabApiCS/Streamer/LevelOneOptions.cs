@@ -107,7 +107,7 @@ namespace SchwabApiCS
                         }
                         catch (Exception e)
                         {
-                            var xx = 1;
+                            throw;
                         }
                     }
                     quote.timestamp = SchwabApi.ApiDateTime_to_DateTime(d.timestamp);

@@ -1,0 +1,212 @@
+﻿<UserControl x:Class="ZpmPriceCharts.PriceChart"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ZpmPriceCharts"
+             mc:Ignorable="d" SizeChanged="UserControl_SizeChanged" >
+    <UserControl.Resources>
+        <Style x:Key="FocusVisual">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Rectangle Margin="2" StrokeDashArray="1 2" Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" SnapsToDevicePixels="true" StrokeThickness="1"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="Button.Static.Background" Color="#FFDDDDDD"/>
+        <SolidColorBrush x:Key="Button.Static.Border" Color="#FF707070"/>
+        <SolidColorBrush x:Key="Button.MouseOver.Background" Color="#FFBEE6FD"/>
+        <SolidColorBrush x:Key="Button.MouseOver.Border" Color="#FF3C7FB1"/>
+        <SolidColorBrush x:Key="Button.Pressed.Background" Color="#FFC4E5F6"/>
+        <SolidColorBrush x:Key="Button.Pressed.Border" Color="#FF2C628B"/>
+        <SolidColorBrush x:Key="Button.Disabled.Background" Color="#FFF4F4F4"/>
+        <SolidColorBrush x:Key="Button.Disabled.Border" Color="#FFADB2B5"/>
+        <SolidColorBrush x:Key="Button.Disabled.Foreground" Color="#FF838383"/>
+        <Style x:Key="ZoomButton" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="border">
+                            <ContentPresenter x:Name="contentPresenter"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Background" TargetName="border" Value="#303030"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter Property="Background" TargetName="border" Value="#606060"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    
+    <Grid Background="#1A1A1A" Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="28" /> <!-- studies section -->
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="32" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Grid x:Name="ChartHeading" Grid.Row="0" Grid.Column="1" Background="#1A1A1A" Height="18">
+            <Grid.Resources>
+                <Style TargetType="Line">
+                    <Setter Property="StrokeThickness" Value="1" />
+                    <Setter Property="Stroke" Value="#808080" />
+                    <Setter Property="SnapsToDevicePixels" Value="True" />
+                    <Setter Property="RenderOptions.EdgeMode" Value="Aliased" />
+                </Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="13" />
+                    <Setter Property="FontWeight" Value="Normal" />
+                    <Setter Property="Margin" Value="3,0,8,0" />
+                    <Setter Property="Foreground" Value="White" />
+                </Style>
+            </Grid.Resources>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"  />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock x:Name="tbSymbol" Grid.Column="0" Width="60" />
+
+            <Line Grid.Column="1" Y2="18" />
+            <TextBlock x:Name="tbDate" Grid.Column="1" Text="D:" />
+
+            <Line Grid.Column="2" Y2="18" />
+            <TextBlock x:Name="tbOpen" Grid.Column="2" Text="O:" />
+
+            <Line Grid.Column="3" Y2="18" />
+            <TextBlock x:Name="tbHigh" Grid.Column="3" Text="H:" />
+
+            <Line Grid.Column="4" Y2="18" />
+            <TextBlock x:Name="tbLow" Grid.Column="4" Text="L:" />
+
+            <Line Grid.Column="5" Y2="18" />
+            <TextBlock x:Name="tbClose" Grid.Column="5" Text="C:" />
+
+            <Line Grid.Column="6" Y2="18" />
+            <TextBlock x:Name="tbVolume" Grid.Column="6" Text="C:" />
+
+            <Line x:Name="lnStudy1" Grid.Column="7" Y2="18" />
+            <TextBlock x:Name="tbStudy1" Grid.Column="7" />
+
+            <Line x:Name="lnStudy2" Grid.Column="8" Y2="18" />
+            <TextBlock x:Name="tbStudy2" Grid.Column="8"/>
+
+            <Line x:Name="lnStudy3" Grid.Column="9" Y2="18" />
+            <TextBlock x:Name="tbStudy3" Grid.Column="9"/>
+
+            <Line x:Name="lnStudy4" Grid.Column="10" Y2="18" />
+            <TextBlock x:Name="tbStudy4" Grid.Column="10"/>
+        </Grid>
+        
+        <Canvas Name="Laxis" Grid.Row="0" Grid.Column="0" Grid.RowSpan="3" Background="#1A1A1A" >
+            <Canvas.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="12"></Setter>
+                    <Setter Property="Margin" Value="2,0,0,0"></Setter>
+                    <Setter Property="Foreground" Value="White"></Setter>
+                </Style>
+            </Canvas.Resources>
+        </Canvas>
+        
+        <Border Grid.Row="1" Grid.Column="1" BorderThickness="1" BorderBrush="#808080">
+            <Canvas Name="ChartArea" Background="#1A1A1A" MouseMove="ChartArea_MouseMove" MouseLeave="ChartArea_MouseLeave" ClipToBounds="True">
+            </Canvas>
+        </Border>
+
+        <Canvas Name="Raxis" Grid.Row="0" Grid.Column="2" Grid.RowSpan="3" Background="#1A1A1A" Width="56" >
+            <Canvas.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="12"></Setter>
+                    <Setter Property="Margin" Value="4,0,0,0"></Setter>
+                    <Setter Property="Foreground" Value="White"></Setter>
+                </Style>
+            </Canvas.Resources>
+        </Canvas>
+
+        <Canvas Name="Xaxis" Grid.Row="2" Grid.Column="1" Background="#1A1A1A"  Height="22">
+            <Canvas.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="10"></Setter>
+                    <Setter Property="Margin" Value="0,3,0,0"></Setter>
+                </Style>
+            </Canvas.Resources>
+        </Canvas>
+        <ScrollBar Name="hScrollBar" Grid.Row="3" Grid.Column="1" Orientation="Horizontal" ValueChanged="HScrollBar_ValueChanged" 
+                   Opacity=".4" Background="#101010" BorderBrush="#000000"  SmallChange="1" Margin="0,0,44,0"  ></ScrollBar>
+        <Button x:Name="ZoomIn" Style="{DynamicResource ZoomButton}" Margin="0,1,21,0" Click="Zoom_Click" ToolTip="Zoom out"
+                 Grid.Row="3"  Grid.Column="1">
+            <Image Source="CirclePlus.png"></Image>
+        </Button>
+        <Button x:Name="ZoomOut" Style="{DynamicResource ZoomButton}" Margin="0,1,0,0" Click="Zoom_Click" ToolTip="Zoom out"
+                 Grid.Row="3"  Grid.Column="1">
+            <Image Source="CircleMinus.png"></Image>
+        </Button>
+
+        <StackPanel Name="StudyButtons" Grid.Row="4" Grid.Column="1" Margin="4" Orientation="Horizontal">
+            <StackPanel.Resources>
+                <Style TargetType="{x:Type ToggleButton}">
+                    <Setter Property="OverridesDefaultStyle" Value="True" />
+                    <Setter Property="Cursor" Value="Hand" />
+                    <Setter Property="Margin" Value="0 0 15 0" />
+                    <Setter Property="MinWidth" Value="50" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Name="border" BorderThickness="1.5" BorderBrush="#d0d0d0" Background="{TemplateBinding Background}" CornerRadius="3 3 3 3">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter Property="Background" Value="#303030" />
+                            <Setter Property="Foreground" Value="#d0d0d0" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Background" Value="#d0d0d0" />
+                            <Setter Property="Foreground" Value="#000000" />
+                            <Setter Property="FontWeight" Value="Bold" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="False">
+                            <Setter Property="Opacity" Value=".8" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Resources>
+        </StackPanel>
+    </Grid>
+</UserControl>
