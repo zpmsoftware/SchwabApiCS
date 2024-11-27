@@ -69,8 +69,11 @@ namespace SchwabApiCS
 
         public override string ToString()
         {
-            return string.Format("{0} {1} {2} {3} {4} Qty: {5}, {6} {7}",
-                accountNumber, orderStrategyType, orderLegCollection[0].instrument.symbol, orderLegCollection[0].instruction,
+            if (orderStrategyType == OrderStrategyTypes.OCO.ToString()) {
+                return "";
+            }
+            return string.Format("XX {0} {1} {2} {3} {4} {5} Qty: {6}, {7} {8}",
+                accountNumber, orderStrategyType, orderType, orderLegCollection[0].instrument.symbol, orderLegCollection[0].instruction,
                 orderType, orderLegCollection[0].quantity.ToString("#.##"),
                 enteredTime == null ? "" : ((DateTime)enteredTime).ToString("yyyy-MM-dd hh:mm:ss tt,"),
                 status
@@ -146,6 +149,8 @@ namespace SchwabApiCS
                     decimal quantity = 0;
                     decimal price = 0;
                     decimal amount = 0;
+                    DateTime? firstTime = null;
+                    DateTime? lastTime = null;
 
                     if (orderLegIndex >= Count)
                         throw new IndexOutOfRangeException("FillDetails index out of bounds.");
@@ -167,6 +172,14 @@ namespace SchwabApiCS
                                         quantity += eLeg.quantity;
                                         price += eLeg.quantity * (decimal)eLeg.price;
                                         amount += eLeg.quantity * multiplier * (decimal)eLeg.price;
+
+                                        if (eLeg.time != null)
+                                        {
+                                            if (firstTime == null || firstTime < eLeg.time)
+                                                firstTime =  eLeg.time;
+                                            if (lastTime == null || lastTime < eLeg.time)
+                                                lastTime = eLeg.time;
+                                        }
                                     }
                                 }
                             }
@@ -178,6 +191,8 @@ namespace SchwabApiCS
                         Quantity = quantity,
                         AveragePrice = quantity == 0 ? 0 : price / quantity,
                         Amount = amount,
+                        FirstTime = firstTime,
+                        LastTime = lastTime,
                     };
                 }
             }
@@ -191,6 +206,9 @@ namespace SchwabApiCS
                 /// Amount of transaction (cost or proceeds)
                 /// </summary>
                 public decimal Amount { get; set; }
+
+                public DateTime? FirstTime { get; set; }
+                public DateTime? LastTime { get; set; }
 
                 public override string ToString()
                 {
