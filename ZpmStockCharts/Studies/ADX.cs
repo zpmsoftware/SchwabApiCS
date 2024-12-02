@@ -43,11 +43,10 @@ namespace Studies
             Periods = periods;
         }
 
-        public ADX(int periods, CandleSet candleSet_, Studies.ATR atr_, Brush color) : base(color)
+        public ADX(int periods, CandleSet candleSet_, Brush color) : base(color)
         {
             Periods = periods;
-            Atr = atr_;
-            Caclulate(candleSet_);
+            Calculate(candleSet_);
         }
 
         public override string StudyDescription()
@@ -61,8 +60,9 @@ namespace Studies
         }
 
 
-        public override void Caclulate(CandleSet candleSet_)
+        public override void Calculate(CandleSet candleSet_)
         {
+            TimeLastCalculated = DateTime.Now;
             PeriodsLastCalculated = Periods;
             candleSet = candleSet_;
 
@@ -81,9 +81,9 @@ namespace Studies
             double avgMinusDM = 0;
             double dx;
 
-            if (Atr == null)
+            if (Atr == null || Atr.Periods != Periods || Atr.TimeLastCalculated < candleSet.LoadTime)
             {
-                Atr = new Studies.ATR(14, candleSet, System.Windows.Media.Brushes.LightBlue);
+                Atr = new Studies.ATR(Periods, candleSet, System.Windows.Media.Brushes.LightBlue);
             }
 
             var PeriodsM1 = Periods - 1;

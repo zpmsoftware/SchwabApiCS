@@ -118,9 +118,9 @@ namespace SchwabApiCS
                 HighPrice = 3,          // double
                 LowPrice = 4,           // double
                 ClosePrice = 5,         // double
-                Volume = 6,              // double
+                Volume = 6,             // double
                 ChartTime = 7,          // long
-                ChartDay =8           // int
+                ChartDay =8             // int
             };
 
             private static string allFields = null;

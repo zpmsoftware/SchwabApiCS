@@ -38,12 +38,13 @@ namespace Studies
             return StudyDescription() + " - simple moving average.";
         }
 
-        public override void Caclulate(CandleSet candleSet)
+        public override void Calculate(CandleSet candleSet)
         {
-            Caclulate(candleSet, Periods);
+            Calculate(candleSet, Periods);
+            TimeLastCalculated = DateTime.Now;
         }
 
-        public void Caclulate(CandleSet candleSet, int periods)
+        public void Calculate(CandleSet candleSet, int periods)
         {
             List<Candle> candles = candleSet.Candles;
             Values = new double[candles.Count];

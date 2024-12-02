@@ -3,6 +3,8 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+using Windows.ApplicationModel.Background;
+
 namespace ZpmPriceCharts
 {
     public class CandleSet
@@ -11,12 +13,12 @@ namespace ZpmPriceCharts
         public CandleSet() { 
         }
 
-        public CandleSet(string symbol, string descriptiom, TimeFrames timeFrame,
+        public CandleSet(string symbol, string descriptiom, FrequencyTypes frequencyType,
                          DateTime startTime, DateTime endTime, int prependCandles, List<Candle> candles) 
         {
             Symbol = symbol;
             Description = descriptiom;
-            TimeFrame = TimeFrameClass.GetTimeFrameClass(timeFrame);
+            FrequencyType = FrequencyTypeClass.GetFrequencyTypeClass(frequencyType);
             StartTime = startTime;
             EndTime = endTime;
             Candles = candles;
@@ -28,20 +30,20 @@ namespace ZpmPriceCharts
 
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-        
+        public DateTime LoadTime { get; set; }  // used to test when studies need to be recalulated.
+
         public List<Candle> Candles;
-        public TimeFrameClass TimeFrame;
-        //public DateTime LoadTime; // time data was loaded
+        public FrequencyTypeClass FrequencyType;
 
         /// <summary>
         /// Number of candles prepended from requested start date.  To allow for looking back, for studies to calculate
         /// </summary>
         public int PrependCandles { get; set; } = 0;
 
-        public enum TimeFrames
+        public enum FrequencyTypes // was "TimeFrames"
         {
             Zero = 0,
-            Minute = 1,
+            Minute1 = 1,
             Minute5 = 5,
             Minute15 = 15,
             Minute30 = 30,
@@ -54,7 +56,7 @@ namespace ZpmPriceCharts
             Week = 7000,
             Month = 30000
         }
-
+        
         /// <summary>
         /// Index of requested start date
         /// </summary>
@@ -65,20 +67,23 @@ namespace ZpmPriceCharts
 
         public int Count { get { return Candles.Count; } }
 
-        public abstract class TimeFrameClass
+        public abstract class FrequencyTypeClass
         {
-            public TimeFrames TimeFrameId;
+            public FrequencyTypes FrequencyTypeId;
 
-            public static TimeFrameClass GetTimeFrameClass(TimeFrames timeFrame)
+            public static FrequencyTypeClass GetFrequencyTypeClass(FrequencyTypes frequencyType)
             {
-                switch (timeFrame)
+                switch (frequencyType)
                 {
-                    case TimeFrames.Day: return new TimeFrameDay();
-                    case TimeFrames.Week: return new TimeFrameWeek();
-                    case TimeFrames.Month: return new TimeFrameMonth();
-                    case TimeFrames.Minute15: return new TimeFrame15Min();
-                    case TimeFrames.Minute5: return new TimeFrame5Min();
-                    default: throw new Exception("CandleSet must set TimeFrame");
+                    case FrequencyTypes.Day: return new FrequencyTypeDay();
+                    case FrequencyTypes.Week: return new FrequencyTypeWeek();
+                    case FrequencyTypes.Month: return new FrequencyTypeMonth();
+                    case FrequencyTypes.Hour: return new FrequencyTypeHour();
+                    case FrequencyTypes.Minute30: return new FrequencyType30Min();
+                    case FrequencyTypes.Minute15: return new FrequencyType15Min();
+                    case FrequencyTypes.Minute5: return new FrequencyType5Min();
+                    case FrequencyTypes.Minute1: return new FrequencyType1Min();
+                    default: throw new Exception("CandleSet must set FrequencyType");
                 }
             }
 
@@ -91,7 +96,7 @@ namespace ZpmPriceCharts
 
             public virtual bool IsAfterHours(DateTime dt)
             {
-                if ((int)TimeFrameId >= 1000)
+                if ((int)FrequencyTypeId >= 1000)
                     return false; //  daily +
                 if (dt.Hour < 15 && dt.Hour >= 9) // between 9am - 3pm
                     return false;
@@ -100,15 +105,15 @@ namespace ZpmPriceCharts
                 return true;
             }
 
-            public abstract string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp);
+            public abstract string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth);
         }
 
         // ====================================================================
-        public class TimeFrameDay : TimeFrameClass
+        public class FrequencyTypeDay : FrequencyTypeClass
         {
-            public TimeFrameDay()
+            public FrequencyTypeDay()
             {
-                TimeFrameId = TimeFrames.Day;
+                FrequencyTypeId = FrequencyTypes.Day;
             }
 
             public override DateTime PrependStartTime(CandleSet cs)
@@ -116,7 +121,7 @@ namespace ZpmPriceCharts
                 return cs.StartTime.AddDays(-(cs.PrependCandles * 7 / 5));  // 5 market days in a week
             }
 
-            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp)
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
             {
                 if (candleIdx > 1 && (timestamp.DayOfWeek == DayOfWeek.Monday || (candleIdx - lastCandleIdx > 1 && timestamp.DayOfWeek == DayOfWeek.Tuesday)))
                     return timestamp.ToString("M/d");
@@ -125,11 +130,67 @@ namespace ZpmPriceCharts
         }
 
         // ====================================================================
-        public class TimeFrame15Min : TimeFrameClass
+        public class FrequencyTypeHour : FrequencyTypeClass
         {
-            public TimeFrame15Min()
+            public FrequencyTypeHour()
             {
-                TimeFrameId = TimeFrames.Minute15;
+                FrequencyTypeId = FrequencyTypes.Hour;
+            }
+
+            public override DateTime PrependStartTime(CandleSet cs)
+            {
+                return cs.StartTime.AddDays(-3);  // hard to calculate exactly. 2days should be enough
+            }
+
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
+            {
+                var mod = 2;
+                if (candleWidth <= 5)
+                    mod = 4;
+                else if (candleWidth <= 10)
+                    mod = 3;
+
+                if (timestamp.Minute == 0 && timestamp.Hour % mod == 0)
+                    return timestamp.ToString("ht").ToLower(); ;
+                return "";
+            }
+
+            public override string DateText(DateTime date)
+            {
+                return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
+            }
+        }
+
+        public class FrequencyType30Min : FrequencyTypeClass
+        {
+            public FrequencyType30Min()
+            {
+                FrequencyTypeId = FrequencyTypes.Minute30;
+            }
+
+            public override DateTime PrependStartTime(CandleSet cs)
+            {
+                return cs.StartTime.AddDays(-3);  // hard to calculate exactly. 2days should be enough
+            }
+
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
+            {
+                if (timestamp.Minute == 0 && timestamp.Hour % (candleWidth <=11 ? 2 : 1) == 0)
+                    return timestamp.ToString("ht").ToLower(); ;
+                return "";
+            }
+
+            public override string DateText(DateTime date)
+            {
+                return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
+            }
+        }
+
+        public class FrequencyType15Min : FrequencyTypeClass
+        {
+            public FrequencyType15Min()
+            {
+                FrequencyTypeId = FrequencyTypes.Minute15;
             }
 
             public override DateTime PrependStartTime(CandleSet cs)
@@ -137,24 +198,24 @@ namespace ZpmPriceCharts
                 return cs.StartTime.AddDays(-2);  // hard to calculate exactly. 2days should be enough
             }
 
-            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp)
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
             {
                 if (timestamp.Minute == 0)
-                    return timestamp.ToString("h t");
+                    return timestamp.ToString("ht").ToLower();
                 return "";
             }
 
             public override string DateText(DateTime date)
             {
-                return date.ToString("MM/dd/yyyy hh:mm t");
+                return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
             }
         }
 
-        public class TimeFrame5Min : TimeFrameClass
+        public class FrequencyType5Min : FrequencyTypeClass
         {
-            public TimeFrame5Min()
+            public FrequencyType5Min()
             {
-                TimeFrameId = TimeFrames.Minute5;
+                FrequencyTypeId = FrequencyTypes.Minute5;
             }
 
             public override DateTime PrependStartTime(CandleSet cs)
@@ -162,25 +223,49 @@ namespace ZpmPriceCharts
                 return cs.StartTime.AddDays(-1);  // hard to calculate exactly. 1 day should be enough
             }
 
-            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp)
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
             {
                 if (timestamp.Minute == 0)
-                    return timestamp.ToString("h t");
+                    return timestamp.ToString("ht").ToLower();
                 return "";
             }
 
             public override string DateText(DateTime date)
             {
-                return date.ToString("MM/dd/yyyy hh:mm t");
+                return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
             }
         }
 
-        // ====================================================================
-        public class TimeFrameWeek : TimeFrameClass
+        public class FrequencyType1Min : FrequencyTypeClass
         {
-            public TimeFrameWeek()
+            public FrequencyType1Min()
             {
-                TimeFrameId = TimeFrames.Week;
+                FrequencyTypeId = FrequencyTypes.Minute1;
+            }
+
+            public override DateTime PrependStartTime(CandleSet cs)
+            {
+                return cs.StartTime.AddDays(-1);  // hard to calculate exactly. 1 day should be enough
+            }
+
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
+            {
+                if (timestamp.Minute % (candleWidth <= 6 ? 10 : 5) == 0)
+                    return timestamp.ToString("h:mmt").ToLower();
+                return "";
+            }
+
+            public override string DateText(DateTime date)
+            {
+                return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
+            }
+        }
+        // ====================================================================
+        public class FrequencyTypeWeek : FrequencyTypeClass
+        {
+            public FrequencyTypeWeek()
+            {
+                FrequencyTypeId = FrequencyTypes.Week;
             }
 
             public override DateTime PrependStartTime(CandleSet cs)
@@ -188,7 +273,7 @@ namespace ZpmPriceCharts
                 return cs.StartTime.AddDays(-(cs.PrependCandles * 7));
             }
 
-            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp)
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
             {
                 if (timestamp.Day <= 7)
                     return timestamp.ToString("M/d");
@@ -197,11 +282,11 @@ namespace ZpmPriceCharts
         }
 
         // ====================================================================
-        public class TimeFrameMonth : TimeFrameClass
+        public class FrequencyTypeMonth : FrequencyTypeClass
         {
-            public TimeFrameMonth()
+            public FrequencyTypeMonth()
             {
-                TimeFrameId = TimeFrames.Month;
+                FrequencyTypeId = FrequencyTypes.Month;
             }
 
             public override DateTime PrependStartTime(CandleSet cs)
@@ -209,7 +294,7 @@ namespace ZpmPriceCharts
                 return cs.StartTime.AddMonths(-cs.PrependCandles);
             }
 
-            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp)
+            public override string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth)
             {
                 if (timestamp.Month == 1)
                     return timestamp.ToString("yyyy");

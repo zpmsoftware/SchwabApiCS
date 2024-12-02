@@ -31,8 +31,9 @@ namespace Studies
             return StudyDescription() + " - mark meaningful highs and lows.";
         }
 
-        public override void Caclulate(CandleSet candleSet)
+        public override void Calculate(CandleSet candleSet)
         {
+            TimeLastCalculated = DateTime.Now;
             candles = candleSet.Candles;
             highCandle = new List<int>();
             lowCandle = new List<int>();

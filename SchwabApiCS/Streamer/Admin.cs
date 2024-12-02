@@ -3,7 +3,6 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-
 namespace SchwabApiCS
 {
     public partial class Streamer

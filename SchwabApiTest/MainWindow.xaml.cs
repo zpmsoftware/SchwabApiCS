@@ -46,7 +46,7 @@ namespace SchwabApiTest
                 if (p != -1)
                     resourcesPath = resourcesPath.Substring(0, p + 15);
                 tokenDataFileName = resourcesPath + "SchwabTokens.json"; // located in the project folder.
-               
+
                 schwabTokens = new SchwabTokens(tokenDataFileName); // gotta get the tokens First.
                 if (schwabTokens.NeedsReAuthorization)
                 { // use WPF dll to start web browser to capture new tokens

@@ -16,6 +16,7 @@ namespace Studies
         protected DateTime loadTime;
         protected string DecimalFormat = "N2"; // default
         protected bool UseRightAxis = false; // values are a price, sync to right axis
+        public DateTime TimeLastCalculated { get; protected set; }
 
         protected Study(Brush color)
         {
@@ -43,7 +44,7 @@ namespace Studies
             return this[idx].ToString(DecimalFormat);  // [idx].ToString(DecimalFormat) + " " + d.Timestamp.ToString("MM/dd/yyyy")
         }
 
-        public abstract void Caclulate(ZpmPriceCharts.CandleSet candleSet);
+        public abstract void Calculate(ZpmPriceCharts.CandleSet candleSet);
 
         public virtual void Draw(ZpmPriceCharts.PriceChart chart)
         {

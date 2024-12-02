@@ -60,14 +60,15 @@ namespace Studies
             return StudyDescription() + " - relative strength index.";
         }
 
-        public override void Caclulate(CandleSet candleSet)
+        public override void Calculate(CandleSet candleSet)
         {
             Values = GetValues(candleSet, Periods, mode);
+            TimeLastCalculated = DateTime.Now;
         }
 
 
         public static double[] GetValues(CandleSet candleSet, int Periods, Mode mode = Studies.RSI.Mode.Close) 
-        { 
+        {
             List<Candle> candles = candleSet.Candles;
             var values = new double[candles.Count];
             double avgGain = 0;

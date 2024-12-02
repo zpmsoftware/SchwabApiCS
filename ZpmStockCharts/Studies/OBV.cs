@@ -31,8 +31,10 @@ namespace Studies
             return StudyDescription();
         }
 
-        public override void Caclulate(CandleSet candleSet)
+        public override void Calculate(CandleSet candleSet)
         {
+            TimeLastCalculated = DateTime.Now;
+
             candles = candleSet.Candles;
             Values = new double[candles.Count];
 

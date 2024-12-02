@@ -14,7 +14,7 @@ namespace Studies
 {
     public class ATR : Study
     {
-        private int Periods = 0;
+        public int Periods { get; private set; } = 0;
         private int PeriodsLastCalculated = 0;
         private int Decimals = 2;
 
@@ -34,7 +34,7 @@ namespace Studies
         public ATR(int periods_, CandleSet pbs, Brush color) : base(color)
         {
             Periods = periods_;
-            Caclulate(pbs);
+            Calculate(pbs);
         }
 
         public override string StudyDescription()
@@ -47,9 +47,9 @@ namespace Studies
             return StudyDescription() + " - average true range.";
         }
 
-        public override void Caclulate(CandleSet pbs)
+        public override void Calculate(CandleSet pbs)
         {
-            
+            TimeLastCalculated = DateTime.Now;
             PeriodsLastCalculated = Periods;
             Decimals = pbs.Decimals;
             DecimalFormat = "N" + Decimals.ToString();
@@ -105,7 +105,7 @@ namespace Studies
             }
         }
 
-        public void CaclulateX(CandleSet pbs)
+        public void CalculateX(CandleSet pbs)
         {
             PeriodsLastCalculated = Periods;
 

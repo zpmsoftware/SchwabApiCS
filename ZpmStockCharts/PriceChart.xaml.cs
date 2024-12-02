@@ -276,7 +276,7 @@ namespace ZpmPriceCharts
 
             NbrCandles = Math.Max(2, (int)(ChartArea.ActualWidth / CandleWidth));
             foreach (var s in ChartStudies)
-                s.Study.Caclulate(candleSet);
+                s.Study.Calculate(candleSet);
 
             Candles = Cset.Candles.Where(r => r.DateTime >= Cset.StartTime).ToList();
 
@@ -357,14 +357,14 @@ namespace ZpmPriceCharts
         private void DrawAfterHoursShading()
         {
             AfterHoursShadingElements = new List<System.Windows.UIElement>();
-            if ((int)Cset.TimeFrame.TimeFrameId < 1000)
+            if ((int)Cset.FrequencyType.FrequencyTypeId < 1000)
             { // shading for after hours times
                 var sCandle = 0;
-                var isAfterHours = Cset.TimeFrame.IsAfterHours(Candles[StartCandle].DateTime);
+                var isAfterHours = Cset.FrequencyType.IsAfterHours(Candles[StartCandle].DateTime);
                 int x;
                 for (x = 1; x < NbrCandles && x + StartCandle < Candles.Count; x++)
                 {
-                    if (isAfterHours != Cset.TimeFrame.IsAfterHours(Candles[x + StartCandle].DateTime))
+                    if (isAfterHours != Cset.FrequencyType.IsAfterHours(Candles[x + StartCandle].DateTime))
                     {
                         HoursShading(isAfterHours, sCandle, x, false);
                         sCandle = x;
@@ -397,13 +397,27 @@ namespace ZpmPriceCharts
             }
             else if (x - sCandle > 5)
             {
+                var width = (x - sCandle) * CandleWidth;
+                var fontSize = 18;
+                if (width <= 60)  // font adjustment needed for hour timeframe
+                    fontSize = 9;
+                else if (width <= 66)
+                    fontSize = 10;
+                else if (width <= 72)
+                    fontSize = 12;
+                else if (width <= 84)
+                    fontSize = 14;
+                else if (width <= 96)
+                    fontSize = 16;
+
                 var txt = new TextBlock()
                 {
                     Text = Candles[x + StartCandle - 1].DateTime.ToString("ddd MM/dd/yyyy"),
-                    Width = (x - sCandle) * CandleWidth,
+                    Width = width,
+                    TextWrapping = TextWrapping.Wrap,
                     TextAlignment = TextAlignment.Center,
                     Foreground = shadeTextColor,
-                    FontSize = 18
+                    FontSize = fontSize
                 };
                 System.Windows.Controls.Canvas.SetTop(txt, 5);
                 System.Windows.Controls.Canvas.SetLeft(txt, sCandle * CandleWidth);
@@ -584,7 +598,7 @@ namespace ZpmPriceCharts
             for (int x = 0; x < NbrCandles && x + StartCandle < Candles.Count; x++)
             {
                 var d = Candles[StartCandle + x];
-                var dateText = Cset.TimeFrame.ChartXaxisDateText(x, lastDateCandle, d.DateTime);
+                var dateText = Cset.FrequencyType.ChartXaxisDateText(x, lastDateCandle, d.DateTime, CandleWidth);
 
                 if (dateText != "")
                 {
@@ -790,7 +804,7 @@ namespace ZpmPriceCharts
         }
 
         /// <summary>
-        /// caclulate TOP for a price
+        /// calculate TOP for a price
         /// </summary>
         /// <param name="price"></param>
         /// <returns></returns>
@@ -1001,7 +1015,7 @@ namespace ZpmPriceCharts
                 System.Windows.Controls.Canvas.SetLeft(mb, Math.Max(0, position.X - mb.ActualWidth / 2));
 
 
-                MouseDate.Text = Cset.TimeFrame.DateText(Candles[candleIdx].DateTime);
+                MouseDate.Text = Cset.FrequencyType.DateText(Candles[candleIdx].DateTime);
                 mb.Visibility = Visibility.Visible;
                 DrawHeading(ChartXtoCandle(position.X));
             }
