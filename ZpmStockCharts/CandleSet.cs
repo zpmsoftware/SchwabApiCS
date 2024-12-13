@@ -13,12 +13,13 @@ namespace ZpmPriceCharts
         public CandleSet() { 
         }
 
-        public CandleSet(string symbol, string descriptiom, FrequencyTypes frequencyType,
+        public CandleSet(string symbol, string descriptiom, FrequencyTypes frequencyType, bool extendedHours,
                          DateTime startTime, DateTime endTime, int prependCandles, List<Candle> candles) 
         {
             Symbol = symbol;
             Description = descriptiom;
             FrequencyType = FrequencyTypeClass.GetFrequencyTypeClass(frequencyType);
+            ExtendedHours = extendedHours;
             StartTime = startTime;
             EndTime = endTime;
             Candles = candles;
@@ -34,6 +35,7 @@ namespace ZpmPriceCharts
 
         public List<Candle> Candles;
         public FrequencyTypeClass FrequencyType;
+        public bool ExtendedHours;
 
         /// <summary>
         /// Number of candles prepended from requested start date.  To allow for looking back, for studies to calculate

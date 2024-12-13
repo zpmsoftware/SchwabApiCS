@@ -109,10 +109,22 @@ namespace SchwabApiCS
         /// <returns></returns>
         public async Task<ApiResponseWrapper<long?>> OrderExecuteReplaceAsync(string accountNumber, Order order)
         {
-            var jsonOrder = Newtonsoft.Json.JsonConvert.SerializeObject(order);
+            // only tested for replacing a simple stop market order, more complex orders will need work.
+            var newOrder = new Order()
+            {
+                orderType = order.orderType,
+                session = order.session,
+                duration = order.duration,
+                price = order.price,
+                stopPrice = order.stopPrice,
+                orderStrategyType = order.orderStrategyType,
+                orderLegCollection = order.orderLegCollection
+            };
+
+            var jsonOrder = Newtonsoft.Json.JsonConvert.SerializeObject(newOrder);
             LastOrderJson = jsonOrder;
             var result = await Put<long?>(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders/" + order.orderId, jsonOrder);
-            if (!result.HasError && result.ResponseMessage != null)
+            if (!result.HasError && result.ResponseMessage.IsSuccessStatusCode)
             {
                 var pathParts = result.ResponseMessage.Headers.Location.LocalPath.Split('/');
                 result.Data = Convert.ToInt64(pathParts[pathParts.Length - 1]); // get last part, should be orderId

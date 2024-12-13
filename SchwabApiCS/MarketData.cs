@@ -395,7 +395,7 @@ namespace SchwabApiCS
         {
             const string fmt = "/pricehistory?symbol={0}&periodType={1}&period={2}&frequencyType={3}&frequency={4}&needExtendedHoursData={5}&needPreviousClose={6}";
             
-            var url = string.Format(fmt, symbol, periodType, period, frequencyType, frequency, needExtendedHoursData.ToString().ToLower(), needPreviousClose.ToString().ToLower());
+            var url = string.Format(fmt, symbol.ToUpper(), periodType, period, frequencyType, frequency, needExtendedHoursData.ToString().ToLower(), needPreviousClose.ToString().ToLower());
             if (startDate != null)
                 url += "&startDate=" + SchwabApi.DateTime_to_ApiDateTime((DateTime)startDate).ToString();
             if (endDate != null)

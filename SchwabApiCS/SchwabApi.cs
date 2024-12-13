@@ -3,6 +3,7 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 7.4.2 - released 2024-12-13 Beta - Price Charts, fixes in OrderExecuteReplace() and OrderStopLoss()
 // Version 7.4.1 - released 2024-12-02 Beta - Price Charts
 // Version 7.4.0 - released 2024-11-26 Beta - Price Charts
 // Version 7.3.1 - released 2024-08-25
@@ -31,7 +32,7 @@ namespace SchwabApiCS
 
     public partial class SchwabApi
     {
-        public const string Version = "7.4.1";
+        public const string Version = "7.4.2";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description

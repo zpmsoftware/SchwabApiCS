@@ -4,15 +4,10 @@
 // </copyright>
 
 using SchwabApiCS;
-using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
-using System.Xaml;
 using ZpmPriceCharts;
 using static SchwabApiCS.SchwabApi;
-using static SchwabApiCS_WPF.Price_Chart;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using static ZpmPriceCharts.CandleSet;
 
 namespace SchwabApiCS_WPF
@@ -130,16 +125,27 @@ namespace SchwabApiCS_WPF
             {
                 try
                 {
-                    var quote = schwabApi.GetQuote(Symbol);
-                    SymbolDescription = candelSet.Description = quote.reference.description;
+                    var quote = schwabApi.GetQuotes(Symbol);
+                    if (quote[0].invalidSymbols != null)
+                    {
+                        SymbolDescription = $"Symbol {Symbol} not found";
+                        return;
+                    }
+                    SymbolDescription = candelSet.Description = quote[0].reference.description;
                     candelSet.Symbol = Symbol;
+                    switch (quote[0].assetMainType)
+                    {
+                        case "FOREX":
+                            SymbolDescription = $"Error: FOREX is not supported (yet)";
+                            return;
+                        case "FUTURE": candelSet.ExtendedHours = true; break;
+                        default: candelSet.ExtendedHours = false; break;
+                    }
+
                 }
                 catch (Exception ex)
                 {
-                    if (ex.Message.Contains("404"))
-                        SymbolDescription = $"Symbol {Symbol} not found";
-                    else
-                        SymbolDescription = $"Error: {ex.Message}";
+                    SymbolDescription = $"Error: {ex.Message}";
                     return;
                 }
             }
@@ -153,17 +159,17 @@ namespace SchwabApiCS_WPF
                 {
                     case FrequencyTypes.Month:
                         ph = schwabApi.GetPriceHistory(Symbol, SchwabApi.PeriodType.year, 1, SchwabApi.FrequencyType.monthly,
-                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, false);
+                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, candelSet.ExtendedHours);
                         break;
 
                     case FrequencyTypes.Week:
                         ph = schwabApi.GetPriceHistory(Symbol, SchwabApi.PeriodType.year, 1, SchwabApi.FrequencyType.weekly,
-                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, false);
+                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, candelSet.ExtendedHours);
                         break;
 
                     case FrequencyTypes.Day:
                         ph = schwabApi.GetPriceHistory(Symbol, SchwabApi.PeriodType.year, 1, SchwabApi.FrequencyType.daily,
-                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, false);
+                                            1, candelSet.FrequencyType.PrependStartTime(candelSet), candelSet.EndTime, candelSet.ExtendedHours);
                         break;
 
                     case FrequencyTypes.Minute1:
