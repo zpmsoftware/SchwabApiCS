@@ -3,6 +3,8 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ZpmPriceCharts
 {
     public class Candle
@@ -23,6 +25,8 @@ namespace ZpmPriceCharts
         public double Low { get; set; }
         public double Close { get; set; }
         public long Volume { get; set; }
+
+        [NotMapped]
         public DateTime DateTime { get; set; }
 
         public override string ToString()

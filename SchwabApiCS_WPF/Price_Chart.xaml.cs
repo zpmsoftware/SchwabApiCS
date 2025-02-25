@@ -33,15 +33,16 @@ namespace SchwabApiCS_WPF
         {
             InitializeComponent();
 
-            PriceChart1.AddStudy(new Studies.SMA(50, System.Windows.Media.Brushes.Orange), true, false);
-            PriceChart1.AddStudy(new Studies.RSI(14, 70, 30, System.Windows.Media.Brushes.Yellow, System.Windows.Media.Brushes.WhiteSmoke), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.SMA(20, System.Windows.Media.Brushes.Orange), true, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.RSI(14, 70, 30, System.Windows.Media.Brushes.Yellow, System.Windows.Media.Brushes.WhiteSmoke), false, false);
 
-            PriceChart1.AddStudy(new Studies.ADX(14, System.Windows.Media.Brushes.Pink), false, false);
-            PriceChart1.AddStudy(new Studies.ATR(14, System.Windows.Media.Brushes.LightBlue), false, false);
-            PriceChart1.AddStudy(new Studies.EMA(50, System.Windows.Media.Brushes.OrangeRed), false, false);
-            PriceChart1.AddStudy(new Studies.OBV(System.Windows.Media.Brushes.MediumPurple), false, false);
-            PriceChart1.AddStudy(new Studies.RecentHighLow(System.Windows.Media.Brushes.White), false, false);
-
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.ADX(14, System.Windows.Media.Brushes.Pink), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.ATR(14, System.Windows.Media.Brushes.LightBlue), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.EMA(20, System.Windows.Media.Brushes.OrangeRed), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.OBV(System.Windows.Media.Brushes.MediumPurple), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.RecentHighLow(System.Windows.Media.Brushes.White), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.PriceChannel(20, System.Windows.Media.Brushes.Orange, false), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.PriceChannel(55,System.Windows.Media.Brushes.White, false), false, false);
 
             PriceChart1.StudiesChanged();
             TimeFrameFromDate.Text = DateTime.Today.AddYears(-1).AddDays(1).ToString(DateFormat);
@@ -197,7 +198,7 @@ namespace SchwabApiCS_WPF
                 candelSet.LoadTime = DateTime.Now; // used to test when studies need to be recalulated.
                 candelSet.Candles = ConvertSchwabToZpmCandles(ph.candles);
                 candelSet.StartTimeIndex = candelSet.Candles.FindIndex(r => r.DateTime >= candelSet.StartTime);
-                PriceChart1.Draw(ZpmPriceCharts.PriceChart.ChartType.CandleStick, candelSet);
+                PriceChart1.Draw(ZpmPriceCharts.PriceChart.ChartType.CandleStick, candelSet, null);
             }
             catch (Exception ex)
             {

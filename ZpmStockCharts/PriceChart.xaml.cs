@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using static ZpmPriceCharts.PriceChart;
 
 namespace ZpmPriceCharts
 {
@@ -65,12 +66,18 @@ namespace ZpmPriceCharts
 
         public string DecimalFormat = "N2";
 
-        public List<Candle> Candles { get; protected set; }  // candles, with leading prepend candles removed.
+        public List<Candle> Candles { 
+            get; 
+            protected set;
+        }  // candles, with leading prepend candles removed.
 
         public enum ChartType
         {
             CandleStick  // only one so far
         }
+
+        public Canvas ChartArea_ { get { return ChartArea; } }
+
 
         public PriceChart()
         {
@@ -105,6 +112,8 @@ namespace ZpmPriceCharts
         {  
             get
             {
+                if (ChartStudies.Count == 0)
+                    return 0;
                 return ChartStudies.Max(r => r.Study.PrependCandlesNeeded);
             }
         }
@@ -244,9 +253,11 @@ namespace ZpmPriceCharts
             ChartStudies.Clear();
         }
 
-        public void AddStudy(Studies.Study s, bool show, bool controlsLaxis)
+        public ChartStudy AddStudy(Studies.Study s, bool show, bool controlsLaxis)
         {
-            ChartStudies.Add( new ChartStudy(s, show, controlsLaxis));
+            var chartStudy = new ChartStudy(s, show, controlsLaxis);
+            ChartStudies.Add(chartStudy);
+            return chartStudy;
         }
 
         public void SetStartCandle(int idx)
@@ -262,7 +273,7 @@ namespace ZpmPriceCharts
         /// <summary>
         /// Draw price chart
         /// </summary>
-        public void Draw(ChartType chartType, CandleSet candleSet)
+        public void Draw(ChartType chartType, CandleSet candleSet, DrawCustomChartElements? drawCustomChartElements = null)
         {
             if (ChartAreaActualHeight() == 0 || candleSet == null)
                 return;
@@ -281,7 +292,7 @@ namespace ZpmPriceCharts
             Candles = Cset.Candles.Where(r => r.DateTime >= Cset.StartTime).ToList();
 
             SetStartCandle(Candles.Count - NbrCandles);
-            ReDraw();
+            ReDraw(drawCustomChartElements);
         }
 
         private SolidColorBrush shadeColor = null;
@@ -293,11 +304,20 @@ namespace ZpmPriceCharts
         protected List<System.Windows.UIElement> GridLinesElements;
         protected List<System.Windows.UIElement> CandleElements;
         protected List<System.Windows.UIElement> LaxisElements;
+        protected List<System.Windows.UIElement>? CustomElements;
 
         private double MaxVolume = 0;
 
-        public void ReDraw() 
+        public delegate List<UIElement> DrawCustomChartElements(PriceChart priceChart);
+        private DrawCustomChartElements? currentDrawCustomChartElements = null;
+
+        /// <summary>
+        /// Redraw chart
+        /// </summary>
+        /// <param name="drawCustomChartElements">List of custom UI elements to add to chart. Use null if none</param>
+        public void ReDraw(DrawCustomChartElements? drawCustomChartElements = null) 
         {
+            currentDrawCustomChartElements = drawCustomChartElements;
             DrawAfterHoursShading();
             DrawRaxisAndGridLines();  // draw Right axis (Prices)
             DrawLaxis(); // for studies
@@ -305,11 +325,10 @@ namespace ZpmPriceCharts
             DrawVolume();
             DrawCandles();
 
-            foreach (var cs in ChartStudies)
-            {
-                if (cs.Show)
-                    cs.Study.Draw(this);
-            }
+            if (currentDrawCustomChartElements != null)
+                CustomElements = currentDrawCustomChartElements(this); // call delegate to build additional custom ui elements to draw
+            else
+                CustomElements = null;
 
             UpdateChartArea();
         }
@@ -336,6 +355,11 @@ namespace ZpmPriceCharts
                     foreach (var e in cs.Study.UiElements)
                         ChartArea.Children.Add(e);
                 }
+            }
+
+            if (CustomElements != null) { 
+                foreach (var e in CustomElements)
+                    ChartArea.Children.Add(e);
             }
 
             ChartArea.Children.Add(MouseX);
@@ -1050,6 +1074,11 @@ namespace ZpmPriceCharts
                 if (cs.Show)
                     cs.Study.Draw(this);
             }
+            if (currentDrawCustomChartElements != null)
+                CustomElements = currentDrawCustomChartElements(this); // call delegate to build additional custom ui elements to draw
+            else
+                CustomElements = null;
+
             UpdateChartArea();
 
         }
@@ -1065,13 +1094,13 @@ namespace ZpmPriceCharts
 
                 NbrCandles = Math.Max(2, (int)(ChartArea.ActualWidth / CandleWidth));
                 SetStartCandle(Candles.Count - NbrCandles);
-                ReDraw();
+                ReDraw(currentDrawCustomChartElements);
             }
         }
 
         private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            Draw(Chart_Type, Cset);
+            Draw(Chart_Type, Cset, currentDrawCustomChartElements);
         }
     }
 

@@ -204,7 +204,9 @@ namespace SchwabApiCS
                               decimal currentDayProfitLossPercentage, decimal longQuantity, decimal settledLongQuantity,
                               decimal settledShortQuantity, decimal agedQuantity, Instrument instrument, decimal marketValue,
                               decimal maintenanceRequirement, decimal averageLongPrice, decimal taxLotAverageLongPrice,
-                              decimal longOpenProfitLoss, decimal previousSessionLongQuantity, decimal currentDayCost)
+                              decimal longOpenProfitLoss, decimal previousSessionLongQuantity, decimal currentDayCost,
+                              decimal averageShortPrice, decimal taxLotAverageShortPrice, decimal shortOpenProfitLoss,
+                              decimal previousSessionShortQuantity)
                 {
                     public override string ToString()
                     {

@@ -97,12 +97,27 @@ namespace SchwabApiCS
         /// <returns>Task<Quote></Quote></returns>
         public async Task<ApiResponseWrapper<Quote>> GetQuoteAsync(string symbol, string? fields = null)
         {
-            var url = MarketDataBaseUrl + "/" + symbol + "/quotes";
-            if (fields != null)
-                url += "?fields=" + fields;
-            return await Get<Quote>(url, ConvertToQuote);
+            if (symbol.StartsWith("/")) // symbols that start with / must use Quotes
+            {
+                var url = MarketDataBaseUrl + "/quotes?symbols=" + symbol;
+                if (fields != null)
+                    url += "&fields=" + fields;
+                return await Get<Quote>(url, ConvertQuotesToQuote);
+            }
+            else
+            {
+                var url = MarketDataBaseUrl + "/" + symbol + "/quotes";
+                if (fields != null)
+                    url += "?fields=" + fields;
+                return await Get<Quote>(url, ConvertToQuote);
+            }
         }
 
+        private static string ConvertQuotesToQuote(string json)
+        {
+            var j = JObject.Parse(json);
+            return j.First.First.ToString();
+        }
 
         private static string ConvertToQuote(string json)
         {
@@ -224,6 +239,7 @@ namespace SchwabApiCS
                 public decimal markPercentChange { get; set; }
                 public decimal netChange { get; set; }
                 public decimal netPercentChange { get; set; }
+                public decimal nAV { get; set; } // used for mutual funds, SWVXX - money market
                 public decimal openPrice { get; set; }
                 public decimal postMarketChange { get; set; }
                 public decimal postMarketPercentChange { get; set; }
@@ -241,7 +257,7 @@ namespace SchwabApiCS
                 public decimal? futurePercentChange { get; set; }
                 public decimal? indAskPrice { get; set; }
                 public decimal? indBidPrice { get; set; }
-                public int? indQuoteTime { get; set; }
+                public long? indQuoteTime { get; set; }
                 public decimal? impliedYield { get; set; }
                 public decimal? moneyIntrinsicValue { get; set; }
                 public int? openInterest { get; set; } // futures

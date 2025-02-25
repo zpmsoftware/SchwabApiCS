@@ -6,13 +6,13 @@
 using ZpmPriceCharts;
 using System.Windows.Media;
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     public class SMA : Study   
     {
         // Simple Moving Average
 
-        public int Periods { get;  private set; }
+        public int Periods { get; set; }
 
         public override int PrependCandlesNeeded { get { return Periods-1; } } // required to get a good value for the firsst chart candle
 
@@ -40,35 +40,66 @@ namespace Studies
 
         public override void Calculate(CandleSet candleSet)
         {
-            Calculate(candleSet, Periods);
+            Values = Calculate(candleSet, Periods);
             TimeLastCalculated = DateTime.Now;
         }
 
-        public void Calculate(CandleSet candleSet, int periods)
+        public static double[] Calculate(CandleSet candleSet, int periods)
         {
             List<Candle> candles = candleSet.Candles;
-            Values = new double[candles.Count];
-            Periods = periods;
+           var values = new double[candles.Count];
 
-            if (Periods > 0)
+            if (periods > 0)
             {
                 // calculate average
-                Values[0] = candles[0].Close;
+                values[0] = candles[0].Close;
                 for (int x = 1; x < candles.Count; x++)
                 { // build totals
-                    if (x >= Periods)
-                        Values[x] = Values[x - 1] + candles[x].Close - candles[x - Periods].Close;  // add one in, take one out
+                    if (x >= periods)
+                        values[x] = values[x - 1] + candles[x].Close - candles[x - periods].Close;  // add one in, take one out
                     else
-                        Values[x] = Values[x - 1] + candles[x].Close;
+                        values[x] = values[x - 1] + candles[x].Close;
                 }
                 for (int x = 1; x < candles.Count; x++)
                 { // get average
-                    if (x >= Periods)
-                        Values[x] = Math.Round(Values[x] / Periods, 2);
+                    if (x >= periods)
+                        values[x] = Math.Round(values[x] / periods, 2);
                     else
-                        Values[x] = Math.Round(Values[x] / (x + 1), 2);
+                        values[x] = Math.Round(values[x] / (x + 1), 2);
                 }
             }
+            return values;
+        }
+
+        /// <summary>
+        /// Calculate SMA on an array of data, not a candle set.
+        /// <param name="data"></param>
+        /// <param name="periods"></param>
+        /// <returns></returns>
+        public static double[] Calculate(double[] data, int periods)
+        {
+            var values = new double[data.Length];
+
+            if (periods > 0)
+            {
+                // calculate average
+                values[0] = data[0];
+                for (int x = 1; x < data.Length; x++)
+                { // build totals
+                    if (x >= periods)
+                        values[x] = values[x - 1] + data[x] - data[x - periods];  // add one in, take one out
+                    else
+                        values[x] = values[x - 1] + data[x];
+                }
+                for (int x = 1; x < data.Length; x++)
+                { // get average
+                    if (x >= periods)
+                        values[x] = Math.Round(values[x] / periods, 2);
+                    else
+                        values[x] = Math.Round(values[x] / (x + 1), 2);
+                }
+            }
+            return values;
         }
     }
 }

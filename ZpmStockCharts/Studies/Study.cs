@@ -5,7 +5,7 @@
 
 using System.Windows.Media;
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     public abstract class Study
     {
@@ -16,6 +16,8 @@ namespace Studies
         protected DateTime loadTime;
         protected string DecimalFormat = "N2"; // default
         protected bool UseRightAxis = false; // values are a price, sync to right axis
+        public string Symbol { get; protected set; }
+
         public DateTime TimeLastCalculated { get; protected set; }
 
         protected Study(Brush color)
@@ -48,7 +50,7 @@ namespace Studies
 
         public virtual void Draw(ZpmPriceCharts.PriceChart chart)
         {
-            if (chart.Cset == null) // candles not loaded yet
+            if (chart.Cset == null || Values == null) // candles not loaded yet
                 return;
 
             UiElements.Clear();

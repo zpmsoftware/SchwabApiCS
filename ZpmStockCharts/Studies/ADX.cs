@@ -10,7 +10,7 @@ using System.Windows.Media;
 // ADX - Average Directional Index
 // ======================================================================================
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     // Advance Decline
     public class ADX : Study
@@ -81,7 +81,7 @@ namespace Studies
             double avgMinusDM = 0;
             double dx;
 
-            if (Atr == null || Atr.Periods != Periods || Atr.TimeLastCalculated < candleSet.LoadTime)
+            if (Atr == null || Atr.Symbol != candleSet.Symbol || Atr.Periods != Periods || Atr.TimeLastCalculated < candleSet.LoadTime)
             {
                 Atr = new Studies.ATR(Periods, candleSet, System.Windows.Media.Brushes.LightBlue);
             }

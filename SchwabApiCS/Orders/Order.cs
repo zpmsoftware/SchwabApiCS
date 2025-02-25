@@ -24,7 +24,7 @@ namespace SchwabApiCS
         public Order() 
         {
             orderLegFillDetails = new OrderLegFillDetails(this);
-        }  
+        }
 
         /// <summary>
         /// Generic order
@@ -34,17 +34,37 @@ namespace SchwabApiCS
         /// <param name="session">NORMAL,AM,PM.SEAMLESS</param>
         /// <param name="duration">DAY, GOOD_TILL_CANCEL, etc</param>
         /// <param name="price"></param>
-        public Order(OrderType orderType, OrderStrategyTypes orderStrategyTypes, Session session, Duration duration, decimal? price = null)
+        /// <parmm name="stopLimitPrice">required for STOP_LIMIT orders</param>
+        public Order(OrderType orderType, OrderStrategyTypes orderStrategyTypes, Session session, Duration duration,
+                     decimal? price = null, decimal? stopLimitPrice = null)
         {
             orderLegFillDetails = new OrderLegFillDetails(this);
             this.orderType = orderType.ToString();
             this.orderStrategyType = orderStrategyTypes.ToString();
             this.session = session.ToString();
             this.duration = duration.ToString();
-            if (orderType == OrderType.STOP)
-                this.stopPrice = SchwabApi.PriceAdjust(price);
-            else
-                this.price = SchwabApi.PriceAdjust(price);
+
+            switch (orderType)
+            {
+                case OrderType.STOP:
+                    if (price == null)
+                        throw new Exception("Price is required for STOP orders");
+                    this.stopPrice = SchwabApi.PriceAdjust(price);
+                    break;
+
+                case OrderType.STOP_LIMIT:
+                    if (price == null)
+                        throw new Exception("Price is required for STOP_LIMIT orders");
+                    this.stopPrice = SchwabApi.PriceAdjust(price);
+                    if (stopLimitPrice == null)
+                        throw new Exception("StopLimitPrice is required for STOP_LIMIT orders");
+                    this.price = SchwabApi.PriceAdjust(stopLimitPrice);
+                    break;
+
+                default:
+                    this.price = SchwabApi.PriceAdjust(price);
+                    break;
+            }
         }
 
         #endregion Order_Constructors
@@ -612,17 +632,35 @@ namespace SchwabApiCS
         {
             public ChildOrderStrategy() { }
 
-            public ChildOrderStrategy(OrderType orderType, OrderStrategyTypes orderStrategyTypes, Session session, Duration duration, decimal? price = null)
+            public ChildOrderStrategy(OrderType orderType, OrderStrategyTypes orderStrategyTypes, Session session, Duration duration,
+                                      decimal? price = null, decimal? stopLimitPrice = null)
             {
                 this.orderType = orderType.ToString();
                 this.orderStrategyType = orderStrategyTypes.ToString();
                 this.session = session.ToString();
                 this.duration = duration.ToString();
 
-                if (orderType == OrderType.STOP)
-                    this.stopPrice = SchwabApi.PriceAdjust(price);
-                else
-                    this.price = SchwabApi.PriceAdjust(price);
+                switch (orderType)
+                {
+                    case OrderType.STOP:
+                        if (price == null)
+                            throw new Exception("Price is required for STOP orders");
+                        this.stopPrice = SchwabApi.PriceAdjust(price);
+                        break;
+
+                    case OrderType.STOP_LIMIT:
+                        if (price == null)
+                            throw new Exception("price is required for STOP_LIMIT orders");
+                        if (stopLimitPrice == null)
+                            throw new Exception("stopLimitPrice is required for STOP_LIMIT orders");
+                        this.stopPrice = SchwabApi.PriceAdjust(price);
+                        this.price = SchwabApi.PriceAdjust(stopLimitPrice);
+                        break;
+
+                    default:
+                        this.price = SchwabApi.PriceAdjust(price);
+                        break;
+                }
             }
 
             public void Add(OrderLeg orderLeg)

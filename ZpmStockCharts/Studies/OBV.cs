@@ -6,7 +6,7 @@
 using ZpmPriceCharts;
 using System.Windows.Media;
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     public class OBV : Study
     {
@@ -33,30 +33,31 @@ namespace Studies
 
         public override void Calculate(CandleSet candleSet)
         {
-            TimeLastCalculated = DateTime.Now;
-
             candles = candleSet.Candles;
-            Values = new double[candles.Count];
+            Values = Calculate(candles);
+            TimeLastCalculated = DateTime.Now;
+            MaxValue = Values.Max();
+            MinValue = Values.Min();
+        }
+
+
+        public static double[] Calculate(List<Candle> candles)
+        {
+            var values = new double[candles.Count];
 
             // calculate
-            Values[0] = candles[0].Volume;
-            MaxValue = Values[0];
-            MinValue = Values[0];
+            values[0] = candles[0].Volume;
 
             for (int x = 1; x < candles.Count; x++)
             {
                 if (candles[x].Close > candles[x-1].Close)
-                    Values[x] = Values[x-1] + candles[x].Volume;
+                    values[x] = values[x-1] + candles[x].Volume;
                 else if (candles[x].Close < candles[x-1].Close)
-                    Values[x] = Values[x - 1] - candles[x].Volume;
+                    values[x] = values[x - 1] - candles[x].Volume;
                 else
-                    Values[x] = Values[x - 1];
-
-                if (Values[x] > MaxValue)
-                    MaxValue = Values[x];
-                if (Values[x] < MinValue)
-                    MinValue = Values[x];
+                    values[x] = values[x - 1];
             }
+            return values;
         }
 
         public override void Draw(PriceChart chart)

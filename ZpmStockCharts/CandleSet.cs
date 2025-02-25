@@ -13,16 +13,18 @@ namespace ZpmPriceCharts
         public CandleSet() { 
         }
 
-        public CandleSet(string symbol, string descriptiom, FrequencyTypes frequencyType, bool extendedHours,
-                         DateTime startTime, DateTime endTime, int prependCandles, List<Candle> candles) 
+        public CandleSet(string symbol, string description, int decimals, FrequencyTypes frequencyType, bool extendedHours,
+                         DateTime startTime, DateTime endTime, int prependCandles, DateTime loadTime, List<Candle> candles) 
         {
             Symbol = symbol;
-            Description = descriptiom;
+            Description = description;
+            Decimals = decimals;
             FrequencyType = FrequencyTypeClass.GetFrequencyTypeClass(frequencyType);
             ExtendedHours = extendedHours;
             StartTime = startTime;
             EndTime = endTime;
             Candles = candles;
+            LoadTime = loadTime;
         }
 
         public string Symbol { get; set; }

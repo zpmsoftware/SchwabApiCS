@@ -6,7 +6,7 @@
 using ZpmPriceCharts;
 using System.Windows.Media;
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     public class EMA : Study
     {

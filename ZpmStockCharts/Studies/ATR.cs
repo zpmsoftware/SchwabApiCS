@@ -10,7 +10,7 @@ using System.Windows.Media;
 // ATR - Average True Range
 // ======================================================================================
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     public class ATR : Study
     {
@@ -47,11 +47,11 @@ namespace Studies
             return StudyDescription() + " - average true range.";
         }
 
-        public override void Calculate(CandleSet pbs)
+        public override void Calculate(CandleSet cs)
         {
             TimeLastCalculated = DateTime.Now;
             PeriodsLastCalculated = Periods;
-            Decimals = pbs.Decimals;
+            Decimals = cs.Decimals;
             DecimalFormat = "N" + Decimals.ToString();
 
             //if (loadTime != pbs.LoadTime)
@@ -59,7 +59,7 @@ namespace Studies
             //    loadTime = pbs.LoadTime;
             //}
 
-            var pb = pbs.Candles;
+            var pb = cs.Candles;
 
             if (Values == null || Values.Length != pb.Count)
                 Values = new double[pb.Count];
@@ -105,7 +105,7 @@ namespace Studies
             }
         }
 
-        public void CalculateX(CandleSet pbs)
+        public void CalculateX(CandleSet cs)
         {
             PeriodsLastCalculated = Periods;
 
@@ -117,7 +117,7 @@ namespace Studies
                 loadTime = pbs.LoadTime;
             }*/
 
-            var pb = pbs.Candles;
+            var pb = cs.Candles;
 
             if (Values == null || Values.Length != pb.Count)
                 Values = new double[pb.Count];
@@ -149,6 +149,28 @@ namespace Studies
                     z = x;
                 Values[x] = (a + (Values[x - 1] * z)) / (z + 1);
             }
+        }
+
+        // ===========================================
+        /// <summary>
+        /// Calculate ATR for one period/day
+        /// </summary>
+        /// <param name="x"> index in pbs for bar to calculateatr for</param>
+        /// <param name="cs">price bar set</param>
+        /// <param name="Periods">atr periods</param>
+        /// <returns></returns>
+        public static double CalculateOneValue(int x, CandleSet cs, int periods)
+        {
+            if (periods <= 0)
+                return 0;
+
+            var pb = cs.Candles;
+            double value = 0;
+            for (int i = x - periods + 1; i <= x; i++)
+                value += Math.Max(pb[i - 1].Close, pb[i].High) - Math.Min(pb[i - 1].Close, pb[i].Low);
+
+            value = Math.Round(value / periods, 2);
+            return value;
         }
     }
 }

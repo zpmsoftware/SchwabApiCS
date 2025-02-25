@@ -6,12 +6,12 @@
 using ZpmPriceCharts;
 using System.Windows.Media;
 
-namespace Studies
+namespace ZpmPriceCharts.Studies
 {
     // Relative Strength Indicator
     public class RSI : Study
     {
-        private int Periods;
+        public int Periods;
         private int Overbought;
         private int Oversold;
         private Brush LimitColor;
