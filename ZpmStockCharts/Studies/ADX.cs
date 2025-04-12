@@ -1,38 +1,17 @@
-﻿// <copyright file="ADX.cs" company="ZPM Software Inc">
-// Copyright © 2024 ZPM Software Inc. All rights reserved.
-// This Source Code is subject to the terms MIT Public License
-// </copyright>
-
-using ZpmPriceCharts;
+﻿using System;
 using System.Windows.Media;
-
-// ======================================================================================
-// ADX - Average Directional Index
-// ======================================================================================
+using System.Collections.Generic;
 
 namespace ZpmPriceCharts.Studies
 {
-    // Advance Decline
     public class ADX : Study
     {
-        public int Periods;
-        private int Overbought;
-        private int Oversold;
-        private Brush LimitColor;
-        public ATR? Atr { get; set; } = null;
-        public override int PrependCandlesNeeded { get { return Periods * 3; } } // required to get a good value for the first chart candle
-
-
-        private double[] di_plus;
-        private double[] di_minus;
-
-        private CandleSet candleSet; // one last used by Calculate()
+        public int Periods { get; set; }
+        public double[] DIPlus { get; private set; }
+        public double[] DIMinus { get; private set; }
+        private CandleSet candleSet;
         private int PeriodsLastCalculated = 0;
 
-        /// <summary>
-        /// ADX - Average Directional Index
-        /// </summary>
-        /// <param name="periods">#candles in period</param>
         public ADX(Brush color) : base(color)
         {
             Periods = 14;
@@ -49,104 +28,117 @@ namespace ZpmPriceCharts.Studies
             Calculate(candleSet_);
         }
 
-        public override string StudyDescription()
-        {
-            return "ADX(" + Periods.ToString() + ")";
-        }
+        public override int PrependCandlesNeeded => Periods * 2;
 
-        public override string StudyToolTip() // longer description
-        {
-            return StudyDescription() + " - average directional index.";
-        }
+        public override string StudyDescription() => $"ADX({Periods})";
 
+        public override string StudyToolTip() => $"{StudyDescription()} - Average Directional Index";
 
         public override void Calculate(CandleSet candleSet_)
         {
             TimeLastCalculated = DateTime.Now;
             PeriodsLastCalculated = Periods;
             candleSet = candleSet_;
-
             List<Candle> candles = candleSet.Candles;
-            Values = new double[candles.Count];
-            di_plus = new double[candles.Count];
-            di_minus = new double[candles.Count];
 
-            double hiDiff;
-            double lowDiff;
-            double plusDM;
-            double minusDM;
-            double plusDI;
-            double minusDI;
-            double avgPlusDM = 0;
-            double avgMinusDM = 0;
-            double dx;
-
-            if (Atr == null || Atr.Symbol != candleSet.Symbol || Atr.Periods != Periods || Atr.TimeLastCalculated < candleSet.LoadTime)
+            if (candles.Count < Periods + 1)
             {
-                Atr = new Studies.ATR(Periods, candleSet, System.Windows.Media.Brushes.LightBlue);
+                Values = new double[candles.Count];
+                DIPlus = new double[candles.Count];
+                DIMinus = new double[candles.Count];
+                DecimalFormat = "N2";
+                return;
             }
 
-            var PeriodsM1 = Periods - 1;
+            Values = new double[candles.Count];
+            DIPlus = new double[candles.Count];
+            DIMinus = new double[candles.Count];
+            DecimalFormat = "N2";
 
-            try
+            double[] plusDM = new double[candles.Count];
+            double[] minusDM = new double[candles.Count];
+            double[] tr = new double[candles.Count];
+            double[] smoothedPlusDM = new double[candles.Count];
+            double[] smoothedMinusDM = new double[candles.Count];
+            double[] smoothedTR = new double[candles.Count];
+            double[] dx = new double[candles.Count];
+
+            // Calculate DM and TR
+            for (int i = 1; i < candles.Count; i++)
             {
-                for (int x = 1; x < candles.Count; x++)
+                double highMove = candles[i].High - candles[i - 1].High;
+                double lowMove = candles[i - 1].Low - candles[i].Low;
+
+                plusDM[i] = highMove > lowMove && highMove > 0 ? highMove : 0;
+                minusDM[i] = lowMove > highMove && lowMove > 0 ? lowMove : 0;
+
+                double tr1 = candles[i].High - candles[i].Low;
+                double tr2 = Math.Abs(candles[i].High - candles[i - 1].Close);
+                double tr3 = Math.Abs(candles[i].Low - candles[i - 1].Close);
+                tr[i] = Math.Max(tr1, Math.Max(tr2, tr3));
+            }
+
+            // First period sums
+            for (int i = 1; i <= Periods; i++)
+            {
+                smoothedPlusDM[Periods] += plusDM[i];
+                smoothedMinusDM[Periods] += minusDM[i];
+                smoothedTR[Periods] += tr[i];
+            }
+
+            // Smooth remaining periods
+            for (int i = Periods + 1; i < candles.Count; i++)
+            {
+                smoothedPlusDM[i] = (smoothedPlusDM[i - 1] * (Periods - 1) + plusDM[i]) / Periods;
+                smoothedMinusDM[i] = (smoothedMinusDM[i - 1] * (Periods - 1) + minusDM[i]) / Periods;
+                smoothedTR[i] = (smoothedTR[i - 1] * (Periods - 1) + tr[i]) / Periods;
+            }
+
+            // Calculate DI and DX
+            for (int i = Periods; i < candles.Count; i++)
+            {
+                DIPlus[i] = smoothedTR[i] != 0 ? (smoothedPlusDM[i] / smoothedTR[i]) * 100 : 0;
+                DIMinus[i] = smoothedTR[i] != 0 ? (smoothedMinusDM[i] / smoothedTR[i]) * 100 : 0;
+                double diSum = DIPlus[i] + DIMinus[i];
+                double diDiff = Math.Abs(DIPlus[i] - DIMinus[i]);
+                dx[i] = diSum != 0 ? (diDiff / diSum) * 100 : 0;
+            }
+
+            // Calculate ADX
+            if (candles.Count >= Periods * 2)
+            {
+                double sumDX = 0;
+                for (int i = Periods; i < Periods * 2; i++)
                 {
-                    plusDM = Math.Max(candles[x].High - candles[x - 1].High, 0);
-                    minusDM = Math.Max(candles[x - 1].Low - candles[x].Low, 0);
+                    sumDX += dx[i];
+                }
+                Values[Periods * 2 - 1] = sumDX / Periods;
 
-                    if (plusDM > minusDM)
-                        minusDM = 0;
-                    else if (plusDM < minusDM)
-                        plusDM = 0;
-
-
-                    if (x == 1)
-                    {
-                        avgPlusDM = plusDM;
-                        avgMinusDM = minusDM;
-                    }
-                    else
-                    {
-                        avgPlusDM = (avgPlusDM * PeriodsM1 + plusDM) / Periods;
-                        avgMinusDM = (avgMinusDM * PeriodsM1 + minusDM) / Periods;
-                    }
-
-                    plusDI = 100 * avgPlusDM / Atr[x];  // offset to start of Atr array
-                    minusDI = 100 * avgMinusDM / Atr[x];
-
-                    di_plus[x] = plusDI;
-                    di_minus[x] = minusDI;
-
-                    if (plusDI + minusDI == 0)
-                        dx = 0;
-                    else
-                        dx = 100 * Math.Abs(plusDI - minusDI) / (plusDI + minusDI);
-
-                    if (x == 1)
-                    {
-                        Values[x] = dx;
-                        Values[0] = Values[1];
-                    }
-                    else
-                        Values[x] = (Values[x - 1] * PeriodsM1 + dx) / Periods;
+                for (int i = Periods * 2; i < candles.Count; i++)
+                {
+                    Values[i] = (Values[i - 1] * (Periods - 1) + dx[i]) / Periods;
                 }
             }
-            catch (Exception ex)
+
+            // Fill early values
+            for (int i = 0; i < Periods * 2 - 1; i++)
             {
-                var xx = 1;
+                Values[i] = 0;
+                DIPlus[i] = 0;
+                DIMinus[i] = 0;
             }
         }
 
         public override string DisplayValue(int idx)
         {
-            return this[idx].ToString(DecimalFormat) + ", DI+ " + di_plus[idx].ToString("N2") + ", DI- " + di_minus[idx].ToString("N2"); 
+            return $"{this[idx].ToString(DecimalFormat)}, DI+ {DIPlus[idx].ToString("N2")}, DI- {DIMinus[idx].ToString("N2")}";
         }
 
+        // Draw method remains largely the same, just update property names
         public override void Draw(ZpmPriceCharts.PriceChart chart)
         {
             UiElements.Clear();
-            int startIdx = chart.StartCandle + chart.Cset.StartTimeIndex;  // starting study index. Values[] has earlier dates, StartDateIndex lines up values with chart.
+            int startIdx = chart.StartCandle + chart.Cset.StartTimeIndex;
 
             if (startIdx < Values.Length)
             {

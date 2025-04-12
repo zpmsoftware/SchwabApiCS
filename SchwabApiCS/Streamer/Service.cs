@@ -77,6 +77,9 @@ namespace SchwabApiCS
                         ProcessResponseLOGIN(response);
                         break;
 
+                    case "LOGOUT":
+                        break;
+
                     default:
                         ThrowReponseException(response);
                         break;
@@ -86,7 +89,7 @@ namespace SchwabApiCS
             private void ThrowReponseException(ResponseMessage.Response response)
             {
                 throw new SchwabApiException(
-                    string.Format("streamer service {0} not expecing {1} response. content.code={2}, content.msg={3}",
+                    string.Format("streamer service {0} not expecting {1} response. content.code={2}, content.msg={3}",
                                   ServiceName, response.command, response.content.code, response.content.msg)
                 );
             }

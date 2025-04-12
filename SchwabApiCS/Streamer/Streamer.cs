@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using System.ComponentModel;
 using static SchwabApiCS.SchwabApi;
 using System.Security.Authentication;
+using WebSocket4Net;
 
 // https://json2csharp.com/
 namespace SchwabApiCS
@@ -42,6 +43,7 @@ namespace SchwabApiCS
         internal static long timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  local time difference from eastern time.
                     (TimeZoneInfo.FindSystemTimeZoneById(TimeZone.CurrentTimeZone.StandardName).GetUtcOffset(DateTime.Now).Hours -
                      TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time").GetUtcOffset(DateTime.Now).Hours);
+        private readonly SynchronizationContext _syncContext;
 
         /// <summary>
         /// *** NOTE ***:  ONLY ONE streamer is allowed per client.
@@ -51,6 +53,8 @@ namespace SchwabApiCS
         /// <exception cref="Exception"></exception>
         public Streamer(SchwabApi schwabApi)
         {
+            _syncContext = SynchronizationContext.Current ?? new SynchronizationContext(); // for async calls to update UI
+
             ServiceList.Add(LevelOneEquities = new LevelOneEquitiesService(this, "LevelOneEquities"));
             ServiceList.Add(LevelOneOptions = new LevelOneOptionsService(this, "LevelOneOptions"));
             ServiceList.Add(LevelOneFutures = new LevelOneFuturesService(this, "LevelOneFutures"));
@@ -87,67 +91,69 @@ namespace SchwabApiCS
             };
 
             // handle received messages
-            websocket.MessageReceived += (socket, messageEvent) =>  // socket == websocket
+            websocket.MessageReceived += (socket, messageEvent) =>
             {
-                try
+                _syncContext.Post(state =>
                 {
-                    if (messageEvent.Message.StartsWith("{\"notify\":"))
+                    try
                     {
-                        if (messageEvent.Message.Contains("[{\"heartbeat\":")) // {"notify":[{"heartbeat":"1718745624421"}]}
-                            return;
-
-                        var notifyMessage = JsonConvert.DeserializeObject<NotifyMessage>(messageEvent.Message);
-                        foreach( var n in notifyMessage.notify)
+                        if (messageEvent.Message.StartsWith("{\"notify\":"))
                         {
-                            var service = ServiceList.Where(s => s.ServiceName == n.service).SingleOrDefault();
-                            if (service == null)
+                            if (messageEvent.Message.Contains("[{\"heartbeat\":"))
+                                return;
+
+                            var notifyMessage = JsonConvert.DeserializeObject<NotifyMessage>(messageEvent.Message);
+                            foreach (var n in notifyMessage.notify)
                             {
-                                throw new Exception($"Streamer response service {n.service}: Code={n.content.code} Msg={n.content.msg}.");
+                                var service = ServiceList.Where(s => s.ServiceName == n.service).SingleOrDefault();
+                                if (service == null)
+                                {
+                                    throw new Exception($"Streamer response service {n.service}: Code={n.content.code} Msg={n.content.msg}.");
+                                }
+                                service.Notify(n);
                             }
-                            service.Notify(n);
+                            return;
                         }
-                        return;
-                    }
 
-                    if (messageEvent.Message.StartsWith("{\"response\":"))
-                    {
-                        var responses = JsonConvert.DeserializeObject<ResponseMessage>(messageEvent.Message);
-
-                        foreach (var r in  responses.response)
+                        if (messageEvent.Message.StartsWith("{\"response\":"))
                         {
-                            var service = ServiceList.Where(s => s.ServiceName == r.service).SingleOrDefault();
-                            if (service == null)
-                                throw new Exception("Streamer response service " + r.service + " not implemented");
+                            var responses = JsonConvert.DeserializeObject<ResponseMessage>(messageEvent.Message);
+                            foreach (var r in responses.response)
+                            {
+                                var service = ServiceList.Where(s => s.ServiceName == r.service).SingleOrDefault();
+                                if (service == null)
+                                    throw new Exception("Streamer response service " + r.service + " not implemented");
 
-                            service.ProcessResponse(r);
+                                service.ProcessResponse(r);
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    if (messageEvent.Message.StartsWith("{\"data\":"))
-                    {
-                        var dataMsg = JsonConvert.DeserializeObject<DataMessage>(messageEvent.Message);
-                        var msg = JsonConvert.DeserializeObject<dynamic>(messageEvent.Message);
 
-                        for(var i=0; i<dataMsg.data.Count; i++)
+                        if (messageEvent.Message.StartsWith("{\"data\":"))
                         {
-                            var d = dataMsg.data[i];
-                            var service = ServiceList.Where(s => s.ServiceName == d.service).SingleOrDefault();
-                            if (service == null)
-                                throw new Exception("Streamer data service " + d.service + " not implemented");
+                            var dataMsg = JsonConvert.DeserializeObject<DataMessage>(messageEvent.Message);
+                            var msg = JsonConvert.DeserializeObject<dynamic>(messageEvent.Message);
+                            for (var i = 0; i < dataMsg.data.Count; i++)
+                            {
+                                var d = dataMsg.data[i];
+                                var service = ServiceList.Where(s => s.ServiceName == d.service).SingleOrDefault();
+                                if (service == null)
+                                    throw new Exception("Streamer data service " + d.service + " not implemented");
 
-                            service.ProcessData(d, msg.data[i].content);
+                                service.ProcessData(d, msg.data[i].content);
+                            }
+                            return;
                         }
-                        return;
-                    }
 
-                    var message = JsonConvert.DeserializeObject<dynamic>(messageEvent.Message);
-                    var responseType = ((Newtonsoft.Json.Linq.JProperty)((Newtonsoft.Json.Linq.JObject)message).First).Name;
-                    throw new Exception("Streamer response type " + responseType + "" + " not implemented");
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Streamer error: " + ex.Message);
-                }
+                        var message = JsonConvert.DeserializeObject<dynamic>(messageEvent.Message);
+                        var responseType = ((Newtonsoft.Json.Linq.JProperty)((Newtonsoft.Json.Linq.JObject)message).First).Name;
+                        throw new Exception("Streamer response type " + responseType + " not implemented");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception("Streamer error: " + ex.Message);
+                    }
+                }, null);
             };
 
             // handle socket errors

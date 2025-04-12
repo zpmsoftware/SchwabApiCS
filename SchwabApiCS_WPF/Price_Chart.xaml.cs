@@ -209,7 +209,7 @@ namespace SchwabApiCS_WPF
             }
         }
 
-        public List<ZpmPriceCharts.Candle> ConvertSchwabToZpmCandles(List<SchwabApi.Candle> schwabCandles)
+        public static List<ZpmPriceCharts.Candle> ConvertSchwabToZpmCandles(List<SchwabApi.Candle> schwabCandles)
         {
             var zCandles = new List<ZpmPriceCharts.Candle>();
             foreach (var s in schwabCandles)
