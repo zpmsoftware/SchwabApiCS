@@ -4,10 +4,7 @@
 // </copyright>
 
 using System.Windows.Media;
-
-// ======================================================================================
-// ADX - Average Directional Index
-// ======================================================================================
+using System.Collections.Generic;
 
 namespace ZpmPriceCharts.Studies
 {
