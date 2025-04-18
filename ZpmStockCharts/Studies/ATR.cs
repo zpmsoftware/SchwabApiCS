@@ -54,102 +54,82 @@ namespace ZpmPriceCharts.Studies
             Decimals = cs.Decimals;
             DecimalFormat = "N" + Decimals.ToString();
 
-            //if (loadTime != pbs.LoadTime)
-            //{
-            //    loadTime = pbs.LoadTime;
-            //}
-
             var pb = cs.Candles;
+            if (pb.Count < Periods) return;
 
-            if (Values == null || Values.Length != pb.Count)
-                Values = new double[pb.Count];
-
-            Values[0] = Math.Abs(pb[0].High - pb[0].Low); // special case for first one
+            Values = new double[pb.Count];
+            double[] tr = new double[pb.Count];
+            tr[0] = Math.Abs(pb[0].High - pb[0].Low);
 
             for (int x = 1; x < pb.Count; x++)
             {
-                Values[x] = Math.Max(pb[x - 1].Close, pb[x].High) - Math.Min(pb[x - 1].Close, pb[x].Low);
-
-                /* line above is equivalent to this code.  
-                var a = pb[x].High - pb[x].Low;
-                var b = pb[x].High - pb[x-1].Close;
-                var c = pb[x-1].Close - pb[x].Low;
-
-                if (b > a)
-                    a = b;
-                if (c > a)
-                    a = c;
-
-                if (a <0 || a1!= a )
-                {
-                    var xx = 1;
-                }
-                */
+                tr[x] = Math.Max(pb[x - 1].Close, pb[x].High) - Math.Min(pb[x - 1].Close, pb[x].Low);
             }
 
-            int z = 0;
             for (int x = 1; x < pb.Count; x++)
             {
-                if (x == 1)
+                if (x == Periods)
                 {
-                    for (int y = 2; y <= Periods; y++)
-                        Values[1] += Values[y];
-                    Values[1] = Values[1] / Periods;
+                    double sumTR = 0;
+                    for (int y = 1; y <= Periods; y++)
+                        sumTR += tr[y];
+                    Values[x] = sumTR / Periods;
                 }
-                else
+                else if (x > Periods)
                 {
-                    if (x < Periods)
-                        z = x;
-                    Values[x] = (Values[x] + (Values[x - 1] * z)) / (z + 1);
+                    Values[x] = (Values[x - 1] * (Periods - 1) + tr[x]) / Periods;
                 }
+            }
+
+            for (int x = 0; x < Periods; x++)
+            {
+                Values[x] = Values[Periods];
             }
         }
 
-        public void CalculateX(CandleSet cs)
+        public void CalculateLast2(CandleSet cs)
         {
-            PeriodsLastCalculated = Periods;
-
-            double ema = 2.0 / (Periods + 1); // ems is the smoothing constant
-
-            /*
-            if (loadTime != pbs.LoadTime)
+            if (Periods != PeriodsLastCalculated || Values == null)
             {
-                loadTime = pbs.LoadTime;
-            }*/
+                Calculate(cs); // Full recalc if periods changed or uninitialized
+                return;
+            }
 
             var pb = cs.Candles;
-
-            if (Values == null || Values.Length != pb.Count)
-                Values = new double[pb.Count];
-
-            Values[0] = Math.Abs(pb[0].High - pb[0].Low); // special case for first one
-
-            int z = 0;
-            for (int x = 1; x < pb.Count; x++)
+            if (pb.Count < Periods + 1) // Minimum required for smoothing
             {
-                var a = Math.Max(pb[x - 1].Close, pb[x].High) - Math.Min(pb[x - 1].Close, pb[x].Low);
-
-                /* line above is equivalent to this code.  
-                var a = pb[x].High - pb[x].Low;
-                var b = pb[x].High - pb[x-1].Close;
-                var c = pb[x-1].Close - pb[x].Low;
-
-                if (b > a)
-                    a = b;
-                if (c > a)
-                    a = c;
-
-                if (a <0 || a1!= a )
+                if (Values.Length != pb.Count)
                 {
-                    var xx = 1;
+                    Array.Resize(ref Values, pb.Count);
                 }
-                */
-
-                if (x < Periods)
-                    z = x;
-                Values[x] = (a + (Values[x - 1] * z)) / (z + 1);
+                for (int x = 0; x < pb.Count; x++)
+                {
+                    Values[x] = 0;
+                }
+                TimeLastCalculated = DateTime.Now;
+                return;
             }
+
+            int lastIdx = pb.Count - 1;
+            int secondLastIdx = lastIdx - 1;
+
+            // Ensure Values array is sized correctly
+            if (Values.Length != pb.Count)
+            {
+                Array.Resize(ref Values, pb.Count);
+            }
+
+            // Update true range and ATR for the last two candles
+            for (int x = secondLastIdx; x <= lastIdx; x++)
+            {
+                double tr = Math.Max(pb[x - 1].Close, pb[x].High) - Math.Min(pb[x - 1].Close, pb[x].Low);
+                Values[x] = (Values[x - 1] * (Periods - 1) + tr) / Periods;
+            }
+
+            TimeLastCalculated = DateTime.Now;
         }
+
+
 
         // ===========================================
         /// <summary>
@@ -161,16 +141,36 @@ namespace ZpmPriceCharts.Studies
         /// <returns></returns>
         public static double CalculateOneValue(int x, CandleSet cs, int periods)
         {
-            if (periods <= 0)
+            if (periods <= 0 || x < periods || x >= cs.Candles.Count)
                 return 0;
 
             var pb = cs.Candles;
-            double value = 0;
-            for (int i = x - periods + 1; i <= x; i++)
-                value += Math.Max(pb[i - 1].Close, pb[i].High) - Math.Min(pb[i - 1].Close, pb[i].Low);
+            double[] tr = new double[cs.Candles.Count];
 
-            value = Math.Round(value / periods, 2);
-            return value;
+            // Calculate TR for all candles up to x
+            tr[0] = Math.Abs(pb[0].High - pb[0].Low);
+            for (int i = 1; i <= x; i++)
+            {
+                tr[i] = Math.Max(pb[i - 1].Close, pb[i].High) - Math.Min(pb[i - 1].Close, pb[i].Low);
+            }
+
+            // Wilder’s ATR
+            double atr = 0;
+            for (int i = 1; i <= x; i++)
+            {
+                if (i == periods)
+                {
+                    for (int j = 1; j <= periods; j++)
+                        atr += tr[j];
+                    atr /= periods; // Initial average
+                }
+                else if (i > periods)
+                {
+                    atr = (atr * (periods - 1) + tr[i]) / periods; // Wilder’s smoothing
+                }
+            }
+
+            return Math.Round(atr, cs.Decimals); // Match precision to CandleSet
         }
     }
 }

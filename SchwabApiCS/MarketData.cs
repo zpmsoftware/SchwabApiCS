@@ -374,8 +374,22 @@ namespace SchwabApiCS
         }
 
         // =========== PRICE HISTORY ============================================================================
+        /*
+         * Schwab API Price History Test				
+            Test Ran on 3/2/2025, with start date 3/2/2024 to 3/2/2025				
+	                    First Date Returned	    #Candles		
+            1-Minute	1/14/2025 (46 days)	    35,902		
+            5-Minute	6/17/2024 (258 days)    38,587		
+            10-Minute	6/17/2024 (258 days)    19,998		
+            15-Minute	6/17/2024 (258 days)    13,416		
+            30-Minute	6/17/2024 (258 days)     6,729		
+         */
+
         /// <summary>
         /// Get candles for a symbol
+        /// Intraday price history only goes back about trading 200 days, or 260 calendar days.
+        /// The end date has to be less than 260 (approximately) days back.
+        /// Start date can be earlier, but you won't get the earlier days..
         /// </summary>
         /// <param name="symbol"></param>
         /// <param name="periodType"></param>

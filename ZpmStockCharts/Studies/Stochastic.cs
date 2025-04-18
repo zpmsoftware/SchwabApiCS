@@ -195,7 +195,7 @@ namespace ZpmPriceCharts.Studies
                     UiElements.Add(ln);
                     ky1 = ln.Y2;
 
-                    ln = chart.ChartLine(System.Windows.Media.Brushes.Brown);
+                    ln = chart.ChartLine(System.Windows.Media.Brushes.Yellow);
                     ln.X1 = x1;
                     ln.Y1 = dy1;
                     ln.X2 = chart.ChartCandleCenter(x);

@@ -14,7 +14,7 @@ namespace ZpmPriceCharts.Studies
 
         public int Periods { get; set; }
 
-        public override int PrependCandlesNeeded { get { return Periods-1; } } // required to get a good value for the firsst chart candle
+        public override int PrependCandlesNeeded { get { return Periods-1; } } // required to get a good value for the first chart candle
 
         /// <summary>
         /// SMA - Simple Moving Average on closing price

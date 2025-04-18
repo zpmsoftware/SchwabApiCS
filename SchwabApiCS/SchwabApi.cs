@@ -83,6 +83,9 @@ namespace SchwabApiCS
          *  
          * PRICE HISTORY                MarketData.cs
          *   GetPriceHistory()          GET /pricehistory                            Get PriceHistory for a single symbol and date ranges.
+         *                                                                           intraday price history only goes back about trading 200 days, or 260 calendar days.
+         *                                                                           The end date has to be less than 260 (approximately) days back.
+         *                                                                           Start date can be earlier, but you won't get the earlier days..
          *  
          * MOVERS                       MarketData.cs
          *   GetMovers()                GET /movers/{index_symbol}                   Get Movers for a specific index.
@@ -130,6 +133,8 @@ namespace SchwabApiCS
         /// <param name="schwabTokens"></param>
         public SchwabApi(SchwabTokens schwabTokens)
         {
+            SetTimeZone(TimeZoneInfo.Local); // default to local time
+
             SchwabApi.schwabTokens = schwabTokens;
 
             if (schwabTokens.NeedsReAuthorization)
@@ -362,11 +367,24 @@ namespace SchwabApiCS
         }
 
         // =========== Date & Time ==================================================================
+        public static void SetTimeZone(TimeZoneInfo timeZone)
+        {
+            var isDST = timeZone.IsDaylightSavingTime(DateTime.Now);
+
+            epoch = (new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                + (timeZone.BaseUtcOffset)).AddHours( isDST ? 1 : 0); // adjust for time zone
+
+            var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            Streamer.timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  selected zone difference from eastern time.
+                    (timeZone.GetUtcOffset(DateTime.Now).Hours -
+                     easternTimeZone.GetUtcOffset(DateTime.Now).Hours + (isDST ? 1 : 0));
+        }
+
         /// <summary>
         /// Schwab API start time. add schwab's milliseconds (long) to epoch to get DateTime
         /// Schwab's server is on eastern time
         /// </summary>
-        static DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddHours(-5); // adjust for time zone
+        static DateTime epoch;
 
         /// <summary>
         /// Convert Schwab API time(long) to DateTime

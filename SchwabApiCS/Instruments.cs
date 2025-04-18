@@ -9,61 +9,70 @@ namespace SchwabApiCS
 {
     public partial class SchwabApi
     {
+        // Enum defining search methods for instruments; used in API query projection parameter
         public enum SearchBy { symbol_search, symbol_regex, desc_search, desc_regex, search, fundamental }
 
         /// <summary>
         /// Get instruments by symbols and projections
         /// </summary>
-        /// <param name="symbols">comma separated list</param>
-        /// <param name="searchBy">see search by enum. fundamental adds fundamental data</param>
-        /// <returns>List<Instrument> or null</returns>
+        /// <param name="symbols">Comma-separated list of symbols (e.g., "AAPL,MSFT").</param>
+        /// <param name="searchBy">Defines search method; 'fundamental' includes extra fundamental data.</param>
+        /// <returns>List of Instrument objects or null if the request fails.</returns>
         public List<Instrument> GetInstrumentsBySymbol(string symbols, SearchBy searchBy)
         {
             return WaitForCompletion(GetInstrumentsBySymbolAsync(symbols, searchBy));
         }
 
         /// <summary>
-        /// Get instruments by symbols and projections async
+        /// Asynchronously get instruments by symbols and projections.
         /// </summary>
-        /// <param name="symbols">comma separated list</param>
-        /// <param name="searchBy">see search by enum. fundamental adds fundamental data</param>
-        /// <returns>Task<ApiResponseWrapper<List<Instrument>>></returns>
+        /// <param name="symbols">Comma-separated list of symbols (e.g., "AAPL,MSFT").</param>
+        /// <param name="searchBy">Defines search method; 'fundamental' includes extra fundamental data.</param>
+        /// <returns>Task with ApiResponseWrapper containing a list of Instrument objects.</returns>
         public async Task<ApiResponseWrapper<List<Instrument>>> GetInstrumentsBySymbolAsync(string symbols, SearchBy searchBy)
         {
-            var url = string.Format("{0}/instruments?symbol={1}&projection={2}", MarketDataBaseUrl, symbols, searchBy.ToString().Replace("_","-"));
+            if (string.IsNullOrEmpty(symbols))
+                throw new ArgumentException("Symbols cannot be null or empty.", nameof(symbols));
+
+            var url = string.Format("{0}/instruments?symbol={1}&projection={2}", MarketDataBaseUrl,
+                                    Uri.EscapeDataString(symbols), searchBy.ToString().Replace("_","-"));
+
             var result = await Get<Instruments>(url);
 
             return new ApiResponseWrapper<List<Instrument>>(result.Data.instruments, false, result.ResponseCode, result.ResponseText);
         }
 
-
         /// <summary>
-        /// Get instrument by cusipId
+        /// Get a single instrument by its CUSIP ID.
         /// </summary>
-        /// <param name="cusipId"></param>
-        /// <returns></returns>
+        /// <param name="cusipId">The CUSIP identifier for the instrument.</param>
+        /// <returns>The Instrument object or null if not found.</returns>
         public Instrument GetInstrumentByCusipId(string cusipId)
         {
             return WaitForCompletion(GetInstrumentByCusipIdAsync(cusipId));
         }
 
         /// <summary>
-        /// Get instrument by cusipId async
+        /// Asynchronously get a single instrument by its CUSIP ID.
         /// </summary>
-        /// <param name="cusipId"></param>
-        /// <returns></returns>
+        /// <param name="cusipId">The CUSIP identifier for the instrument.</param>
+        /// <returns>Task with ApiResponseWrapper containing the Instrument object.</returns>
         public async Task<ApiResponseWrapper<Instrument>> GetInstrumentByCusipIdAsync(string cusipId)
         {
+            if (string.IsNullOrEmpty(cusipId))
+                throw new ArgumentException("Symbols cannot be null or empty.", nameof(cusipId));
+
             var url = string.Format("{0}/instruments/{1}", MarketDataBaseUrl, cusipId);
             var result = await Get<Instruments>(url);
 
-            if (result.HasError)
+            if (result.HasError || result.Data?.instruments?.Count == 0)
                 return new ApiResponseWrapper<Instrument>(default, true, result.ResponseCode, result.ResponseText);
 
+            // Assumes the first instrument in the list is the target; API returns a single-item list
             return new ApiResponseWrapper<Instrument>(result.Data.instruments[0], false, result.ResponseCode, result.ResponseText);
         }
 
-
+        // Wrapper class for API response containing a list of instruments
         public class Instruments
         {
             public List<Instrument> instruments { get; set; }
