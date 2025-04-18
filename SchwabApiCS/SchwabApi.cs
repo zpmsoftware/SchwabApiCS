@@ -3,6 +3,11 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+/* Version 7.4.5 - released 2025-04-18 Added method: SetTimeZone(TimeZoneInfo.Local); // default to local time
+                                       Use to set time zone to use for data returned from Schwab API.
+                                       Security Updates, Change to Streamer service to make thread safe, additional code comments,
+                                       Improvements to Studies ADX, ATR, Stochastic. */
+// Version 7.4.4 - released 2025-04-13 Added synchronization to streamer class to make thread safe.  Updated packages with security issues.  Fixed issues with studies ATR and ADX. In ADX added +DI and -DI
 // Version 7.4.3 - released 2025-02-24 Minor changes & fixes
 // Version 7.4.2 - released 2024-12-13 Beta - Price Charts, fixes in OrderExecuteReplace() and OrderStopLoss()
 // Version 7.4.1 - released 2024-12-02 Beta - Price Charts
@@ -34,7 +39,7 @@ namespace SchwabApiCS
     public partial class SchwabApi
     {
 
-        public const string Version = "7.4.3";
+        public const string Version = "7.4.5";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
