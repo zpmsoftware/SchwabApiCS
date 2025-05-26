@@ -110,6 +110,11 @@ namespace SchwabApiCS
 
         public class ChartEquity
         {
+            public override string ToString()
+            {
+                return $"{Symbol} {((DateTime)ChartTime).ToString("MM/dd/yyyy hh:mm t")}";
+            }
+
             public enum Fields 
             {
                 Symbol = 0,             // string   Ticker symbol in upper case.

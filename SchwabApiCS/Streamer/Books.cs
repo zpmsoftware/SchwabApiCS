@@ -243,7 +243,7 @@ namespace SchwabApiCS
                 {
                     get {
                         if (_quoteTime == null) {
-                            _quoteTime = DateTime.Today.AddMilliseconds(quoteTime + timeZoneAdjust);
+                            _quoteTime = DateTime.Today.AddMilliseconds(quoteTime + SchwabApi.TimeZoneAdjust);
                         }
                         return (DateTime)_quoteTime;
                     }

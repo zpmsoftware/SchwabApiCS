@@ -40,10 +40,18 @@ namespace SchwabApiCS
         private long requestid = 0;
         internal bool isLoggedIn = false;
         private List<string> requestQueue = new List<string>();
-        public static long timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  local time difference from eastern time.
-                    (TimeZoneInfo.FindSystemTimeZoneById(TimeZone.CurrentTimeZone.StandardName).GetUtcOffset(DateTime.Now).Hours -
-                     TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time").GetUtcOffset(DateTime.Now).Hours);
         private readonly SynchronizationContext _syncContext;
+
+        public event EventHandler<StreamerErrorEventArgs> OnError; // Define an event to notify the UI of errors
+
+        public class StreamerErrorEventArgs : EventArgs
+        {
+            public Exception Exception { get; }
+            public StreamerErrorEventArgs(Exception ex)
+            {
+                Exception = ex;
+            }
+        }
 
         /// <summary>
         /// *** NOTE ***:  ONLY ONE streamer is allowed per client.
@@ -151,7 +159,7 @@ namespace SchwabApiCS
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception("Streamer error: " + ex.Message);
+                        OnError?.Invoke(this, new StreamerErrorEventArgs(ex));
                     }
                 }, null);
             };
@@ -159,15 +167,39 @@ namespace SchwabApiCS
             // handle socket errors
             websocket.Error += (s, e) =>
             {
+                Exception errorException = null;
+
                 try
                 {
                     websocket.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Streamer error: " + e.Exception.Message + "\n" + ex.Message);
+                    errorException = new Exception("Streamer error 2: " + e.Exception.Message + "\n" + ex.Message);
                 }
-                throw new Exception("Streamer error: " + e.Exception.Message);
+
+                // Create the final exception to propagate
+                errorException ??= new Exception("Streamer error 3: " + e.Exception.Message);
+
+                // Post the error to the UI thread
+                _syncContext.Post(state =>
+                {
+                    // Raise the OnError event to notify subscribers (e.g., UI)
+                    OnError?.Invoke(this, new StreamerErrorEventArgs(errorException));
+
+                    // Optionally restart services here (if needed)
+                    // For example, attempt to reopen the WebSocket
+                    if (requestQueue.Count > 0)
+                    {
+                        isLoggedIn = false;
+                        websocket = new WebSocket4Net.WebSocket(streamerInfo.streamerSocketUrl,
+                            sslProtocols: SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls | SslProtocols.None);
+                        websocket.Opened += (s, e) => { websocket.Send(LoginRequest()); };
+                        websocket.Closed += (socket, evt) => { if (requestQueue.Count > 0) websocket.Open(); };
+                        // Reattach other event handlers as needed
+                        websocket.Open();
+                    }
+                }, null);
             };
 
             websocket.Open();

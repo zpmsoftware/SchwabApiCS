@@ -18,6 +18,9 @@ namespace ZpmPriceCharts
     /// </summary>
     public partial class PriceChart : UserControl
     {
+        public static TimeSpan RegularHoursStart { get; set; } // used to shade after hours interday candles 1 - 60 minute)
+        public static TimeSpan RegularHoursEnd { get; set; } // used to shade after hours interday candles 1 - 60 minute)
+
         public CandleSet Cset { get; set; }
         public string BackgroundColor { get; set; }
         public string Symbol { get; set; }
@@ -82,6 +85,9 @@ namespace ZpmPriceCharts
         public PriceChart()
         {
             InitializeComponent();
+
+            RegularHoursStart = new TimeSpan(9, 30, 0); // 9:30am default to eastern time
+            RegularHoursEnd = new TimeSpan(16, 0, 0); // 4:00pm default to eastern time
 
             CircleX = new BitmapImage(new Uri("Creek.jpg", UriKind.Relative));
 
@@ -258,6 +264,20 @@ namespace ZpmPriceCharts
             var chartStudy = new ChartStudy(s, show, controlsLaxis);
             ChartStudies.Add(chartStudy);
             return chartStudy;
+        }
+
+        /// <summary>
+        /// scroll so time is in view
+        /// </summary>
+        /// <param name="t">must be truncated to candle period</param>
+        public void ViewTime(DateTime t)
+        {
+            var startBar = Cset.Candles.FindIndex(r => r.DateTime == t) - Cset.StartTimeIndex;
+            if (startBar >= 0)
+            {
+                SetStartCandle(Math.Max(0, startBar - 4));
+                ReDraw(currentDrawCustomChartElements);
+            }
         }
 
         public void SetStartCandle(int idx)
@@ -873,12 +893,13 @@ namespace ZpmPriceCharts
             return pln;
         }
 
-        public Line HorizontalPriceLine(Brush brush, int startCandle, int endCandle, double price, double thickness=1, double opacity = 1)
+
+        public Line HorizontalPriceLine(Brush brush, int startCandle, int endCandle, double price, double thickness = 1, double opacity = 1, double verticalOffset = 0)
         {
-            return PriceLine(brush, startCandle, endCandle, price, price, thickness, opacity);
+            return PriceLine(brush, startCandle, endCandle, price, price, thickness, opacity, verticalOffset);
         }
 
-        public Line PriceLine(Brush brush, int startCandle, int endCandle, double fromPrice, double toPrice, double thickness=1, double opacity = 1)
+        public Line PriceLine(Brush brush, int startCandle, int endCandle, double fromPrice, double toPrice, double thickness = 1, double opacity = 1, double verticalOffset = 0)
         {
             var pln = new Line()
             {
@@ -887,9 +908,9 @@ namespace ZpmPriceCharts
                 SnapsToDevicePixels = true,
                 Stroke = brush,
                 X1 = ChartAreaX(startCandle),
-                X2 = ChartAreaX(endCandle+1)-1,
-                Y1 = ChartAreaY(fromPrice),
-                Y2 = ChartAreaY(toPrice),
+                X2 = ChartAreaX(endCandle + 1) - 1,
+                Y1 = ChartAreaY(fromPrice) + verticalOffset,
+                Y2 = ChartAreaY(toPrice) + verticalOffset,
                 Opacity = opacity,
             };
             pln.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
@@ -975,7 +996,7 @@ namespace ZpmPriceCharts
                 {
                     if (ChartStudies[x].Study.IsLoaded && idx + Cset.StartTimeIndex < ChartStudies[x].Study.Length)
                     {
-                        HeadingStudyTb[sx].Text = StudyDescription[sx] + ChartStudies[x].Study.DisplayValue(idx + Cset.StartTimeIndex);
+                        HeadingStudyTb[sx].Text = StudyDescription[sx] + ChartStudies[sx].Study.DisplayValue(idx + Cset.StartTimeIndex);
                         sx++;
                     }
 

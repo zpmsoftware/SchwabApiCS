@@ -583,26 +583,32 @@ namespace SchwabApiCS
 
             var marketHours = new MarketHours();
 
+            var settings = new JsonSerializerSettings
+            {
+                Converters = { new JsonDateTimeConverter(SchwabApi.JsonTimeZoneAdjust) }
+            };
+
             // found this issue on 2024-06-07. seems non-market days have a different schema.
             // EQ changes to equity, and BON changes to bond.  I reported it as a bug.  Maybe this can be removed in the future
             if (j["equity"]["EQ"] != null)
-                marketHours.equity = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["equity"]["EQ"].ToString());
+                marketHours.equity = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["equity"]["EQ"].ToString(), settings);
             else
-                marketHours.equity = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["equity"]["equity"].ToString());
+                marketHours.equity = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["equity"]["equity"].ToString(), settings);
 
             if (j["bond"]["BON"] != null)
-                marketHours.bond = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["bond"]["BON"].ToString());
+                marketHours.bond = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["bond"]["BON"].ToString(), settings);
             else
-                marketHours.bond = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["bond"]["bond"].ToString());
+                marketHours.bond = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["bond"]["bond"].ToString(), settings);
 
-            marketHours.forex = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["forex"]["forex"].ToString());
+            marketHours.forex = Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(j["forex"]["forex"].ToString(), settings);
             foreach (var m in j["option"])
-                marketHours.options.Add(Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(m.First.ToString()));
+                marketHours.options.Add(Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(m.First.ToString(), settings));
             foreach (var m in j["future"])
-                marketHours.futures.Add(Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(m.First.ToString()));
+                marketHours.futures.Add(Newtonsoft.Json.JsonConvert.DeserializeObject<MarketHours.Market>(m.First.ToString(), settings));
 
             return new ApiResponseWrapper<MarketHours>(marketHours, result.HasError, result.ResponseCode, result.ResponseText);
         }
+
 
         public class MarketHours
         {

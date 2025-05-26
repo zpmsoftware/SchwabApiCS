@@ -39,6 +39,7 @@ namespace ZpmPriceCharts
         public DateTime LoadTime { get; set; }  // used to test when studies need to be recalulated.
 
         public List<Candle> Candles;
+        public List<Candle>? HeikinAshiCandles;
         public FrequencyTypeClass FrequencyType;
         public bool ExtendedHours;
 
@@ -105,11 +106,19 @@ namespace ZpmPriceCharts
             {
                 if ((int)FrequencyTypeId >= 1000)
                     return false; //  daily +
+
+                if (dt.TimeOfDay < PriceChart.RegularHoursStart)
+                    return true;
+                if (dt.TimeOfDay >= PriceChart.RegularHoursEnd)
+                    return true;
+                return false;
+                /*
                 if (dt.Hour < 15 && dt.Hour >= 9) // between 9am - 3pm
                     return false;
                 if (dt.Hour == 8 && dt.Minute >= 30)
                     return false;
                 return true;
+                */
             }
 
             public abstract string ChartXaxisDateText(int candleIdx, int lastCandleIdx, DateTime timestamp, double candleWidth);
@@ -306,6 +315,100 @@ namespace ZpmPriceCharts
                 if (timestamp.Month == 1)
                     return timestamp.ToString("yyyy");
                 return "";
+            }
+        }
+
+
+        /// <summary>
+        /// recalculate last 2 candles.
+        /// If realtime, new candle created by equity streamer price change, or chart equities candle closing a candle
+        /// </summary>
+        public void PopulateHeikinAshiCandles()
+        {
+            if (Candles == null || Candles.Count == 0)
+            {
+                HeikinAshiCandles = new List<Candle>();
+                return;
+            }
+
+            HeikinAshiCandles = new List<Candle>();
+
+            for (int i = 0; i < Candles.Count; i++)
+            {
+                var candle = Candles[i];
+                var haCandle = new Candle
+                {
+                    DateTime = candle.DateTime,
+                    Volume = candle.Volume
+                };
+
+                // Calculate HA Close
+                haCandle.Close = Math.Round((candle.Open + candle.High + candle.Low + candle.Close) / 4.0, Decimals);
+
+                // Calculate HA Open
+                if (i == 0)
+                {
+                    haCandle.Open = candle.Open; // Use regular open for the first candle
+                }
+                else
+                {
+                    var prevHaCandle = HeikinAshiCandles[i - 1];
+                    haCandle.Open = Math.Round((prevHaCandle.Open + prevHaCandle.Close) / 2.0, Decimals);
+                }
+
+                // Calculate HA High and HA Low
+                haCandle.High = Math.Max(candle.High, Math.Max(haCandle.Open, haCandle.Close));
+                haCandle.Low = Math.Min(candle.Low, Math.Min(haCandle.Open, haCandle.Close));
+
+                HeikinAshiCandles.Add(haCandle);
+            }
+        }
+
+        public void PopulateHeikinAshiCandlesLast2()
+        {
+            if (Candles == null || Candles.Count == 0)
+            {
+                HeikinAshiCandles = new List<Candle>();
+                return;
+            }
+
+            // Determine how many candles to process (up to 2)
+            int candlesToProcess = Math.Min(2, Candles.Count);
+            int startIndex = Candles.Count - candlesToProcess;
+            Candle haCandle;
+
+            // Process the last 1 or 2 candles
+            for (int i = startIndex; i < Candles.Count; i++)
+            {
+                var candle = Candles[i];
+                if (HeikinAshiCandles.Count == i) // add new one.
+                {
+                    haCandle = new Candle { DateTime = candle.DateTime, Volume = candle.Volume };
+                    HeikinAshiCandles.Add(haCandle);
+                }
+                else // update existing
+                {
+                    haCandle = HeikinAshiCandles[i];
+                    haCandle.Volume = candle.Volume;
+                }
+
+                // Calculate HA Close
+                haCandle.Close = Math.Round((candle.Open + candle.High + candle.Low + candle.Close) / 4.0, Decimals);
+
+                // Calculate HA Open
+                if (i == 0 || HeikinAshiCandles.Count == 0)
+                {
+                    haCandle.Open = candle.Open; // Use regular open for the first candle
+                }
+                else
+                {
+                    var prevHaCandle = HeikinAshiCandles[HeikinAshiCandles.Count - 1];
+                    haCandle.Open = Math.Round((prevHaCandle.Open + prevHaCandle.Close) / 2.0, Decimals);
+                }
+
+                // Calculate HA High and HA Low
+                haCandle.High = Math.Max(candle.High, Math.Max(haCandle.Open, haCandle.Close));
+                haCandle.Low = Math.Min(candle.Low, Math.Min(haCandle.Open, haCandle.Close));
             }
         }
     }

@@ -1,13 +1,21 @@
 // <copyright file="SchwabApi.cs" company="ZPM Software Inc">
-// Copyright © 2024 ZPM Software Inc. All rights reserved.
+// Copyright © 2024-2025 ZPM Software Inc. All rights reserved.
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
+
+/* Version 7.4.6 - released 2025-05-26 AccountActivity streamer - a number of changes adding or changing fields found in more
+                                       complex orders or different types or orders.  Fixes to allow setting timzones.
+                                       Added error handling to streamer class. OnError?.Invoke to pass exception to UI thread.
+                                       PriceChart fixes, study fixes & enhancements, adding HeikinAshi Candles */
 
 /* Version 7.4.5 - released 2025-04-18 Added method: SetTimeZone(TimeZoneInfo.Local); // default to local time
                                        Use to set time zone to use for data returned from Schwab API.
                                        Security Updates, Change to Streamer service to make thread safe, additional code comments,
                                        Improvements to Studies ADX, ATR, Stochastic. */
-// Version 7.4.4 - released 2025-04-13 Added synchronization to streamer class to make thread safe.  Updated packages with security issues.  Fixed issues with studies ATR and ADX. In ADX added +DI and -DI
+
+/* Version 7.4.4 - released 2025-04-13 Added synchronization to streamer class to make thread safe.  Updated packages with security issues.
+                                       Fixed issues with studies ATR and ADX. In ADX added +DI and -DI */
+
 // Version 7.4.3 - released 2025-02-24 Minor changes & fixes
 // Version 7.4.2 - released 2024-12-13 Beta - Price Charts, fixes in OrderExecuteReplace() and OrderStopLoss()
 // Version 7.4.1 - released 2024-12-02 Beta - Price Charts
@@ -39,7 +47,7 @@ namespace SchwabApiCS
     public partial class SchwabApi
     {
 
-        public const string Version = "7.4.5";
+        public const string Version = "7.4.6";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -125,7 +133,8 @@ namespace SchwabApiCS
         /// Every 7 days user must sign in and reauthorize.
         /// </summary>
         public bool NeedsReAuthorization { get { return schwabTokens.NeedsReAuthorization; } }
-
+        public static long TimeZoneAdjust { private set; get; }
+        public static long JsonTimeZoneAdjust { private set; get; }
 
         internal static SchwabTokens schwabTokens;
         internal IList<AccountNumber> accountNumberHashs; // load once
@@ -379,10 +388,20 @@ namespace SchwabApiCS
             epoch = (new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 + (timeZone.BaseUtcOffset)).AddHours( isDST ? 1 : 0); // adjust for time zone
 
-            var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-            Streamer.timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  selected zone difference from eastern time.
-                    (timeZone.GetUtcOffset(DateTime.Now).Hours -
-                     easternTimeZone.GetUtcOffset(DateTime.Now).Hours + (isDST ? 1 : 0));
+            var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); // time zone of schwab servers
+
+            TimeZoneAdjust = CaclulateTimeZoneAdjust(timeZone, easternTimeZone);  // for adjusting time received as epoch milliseconds
+
+            JsonTimeZoneAdjust = CaclulateTimeZoneAdjust(TimeZoneInfo.Local, timeZone); // for time received as yyyy-mm-ddThh:mm:ss-04:00, 04:00 is time zone offset.
+
+        }
+
+        private static long CaclulateTimeZoneAdjust(TimeZoneInfo fromTz, TimeZoneInfo toTz)
+        {
+            var timeZoneAdjust = 60 * 60 * 1000 *  // milliseconds,  selected zone difference from eastern time.
+                    (toTz.GetUtcOffset(DateTime.Now).Hours -
+                     fromTz.GetUtcOffset(DateTime.Now).Hours);
+            return timeZoneAdjust;
         }
 
         /// <summary>

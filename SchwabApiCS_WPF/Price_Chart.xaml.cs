@@ -36,7 +36,7 @@ namespace SchwabApiCS_WPF
             PriceChart1.AddStudy(new ZpmPriceCharts.Studies.SMA(20, System.Windows.Media.Brushes.Orange), true, false);
             PriceChart1.AddStudy(new ZpmPriceCharts.Studies.RSI(14, 70, 30, System.Windows.Media.Brushes.Yellow, System.Windows.Media.Brushes.WhiteSmoke), false, false);
 
-            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.ADX(14, System.Windows.Media.Brushes.Pink), false, false);
+            PriceChart1.AddStudy(new ZpmPriceCharts.Studies.ADX(14, 14, System.Windows.Media.Brushes.Pink), false, false);
             PriceChart1.AddStudy(new ZpmPriceCharts.Studies.ATR(14, System.Windows.Media.Brushes.LightBlue), false, false);
             PriceChart1.AddStudy(new ZpmPriceCharts.Studies.EMA(20, System.Windows.Media.Brushes.OrangeRed), false, false);
             PriceChart1.AddStudy(new ZpmPriceCharts.Studies.OBV(System.Windows.Media.Brushes.MediumPurple), false, false);

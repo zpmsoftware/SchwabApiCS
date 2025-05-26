@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using static SchwabApiCS.SchwabApi;
 using static SchwabApiCS.Streamer.AccountActivity;
 using static SchwabApiCS.Streamer.AccountActivity.OrderCreated;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SchwabApiCS
 {
@@ -211,7 +212,7 @@ namespace SchwabApiCS
                 public record CancelTimeStamp(string DateTimeString);
 
                 public record LegCancelRequestInfoList(string LegID, int IntendedOrderQuantity, string? ChangedNewOrderID,
-                              int RequestedAmount, string LegStatus, string LegSubStatus, string ChangedNewSchwabOrderId,
+                              decimal? RequestedAmount, string LegStatus, string LegSubStatus, string ChangedNewSchwabOrderId,
                               CancelAcceptedTime CancelAcceptedTime, string EventUserID);
 
                 public record PlanSubmitDate(string DateTimeString);
@@ -228,6 +229,10 @@ namespace SchwabApiCS
 
                 public record AccountInfo(string AccountNumber, string AccountBranch, string CustomerOrFirmCode,
                               string OrderPlacementCustomerID, string AccountState, string AccountTypeCode);
+                public record AdvancedOrderInfo(List<string> ChildAdvancedSchwabOrderID, List<string> AllLinkedSchwabOrderIDs,
+                              string AdvancedOrderDescription, string AdvancedOrderType, bool CreditRiskCheckIndicator,
+                              long? TriggerSchwabOrderID, long? AdvancedOrderGoupID, bool? FillCondition, string? ContingentTimeInForce,
+                              object? ContingentExpiryTimeStamp, object? ContingentPlanSubmitDate);
                 public record AssetOrderEquityOrderLeg(OrderInstruction OrderInstruction, CommissionInfo CommissionInfo, string AssetType,
                               string TimeInForce, string OrderTypeCode, List<OrderLeg> OrderLegs, string OrderCapacityCode,
                               string SettlementType, int Rule80ACode, string SolicitedCode, string TradeTag, EquityOrder EquityOrder);
@@ -239,16 +244,17 @@ namespace SchwabApiCS
                 public record EquityOrder(string TradingSessionCodeOnOrder);
                 public record EquityOrderInstruction();
                 public record EquityOrderLeg(EquityOptionsOrderLeg? EquityOptionsOrderLeg);
-                public record ExecutionStrategy(string Type, LimitExecutionStrategy LimitExecutionStrategy);
+                public record ExecutionStrategy(string Type, LimitExecutionStrategy? LimitExecutionStrategy, StopExecutionStrategy? StopExecutionStrategy);
                 public record ExpiryTimeStamp(string DateTimeString);
                 public record LegClientRequestInfo(string SecurityId, string SecurityIdTypeCd);
                 public record LifecycleCreatedTimestamp(string DateTimeString);
                 public record LimitExecutionStrategy(string Type, decimal LimitPrice, string LimitPriceUnitCode);
+                public record StopExecutionStrategy(string Type, decimal StopPrice);
                 public record OptionExpiryDate(string DateTimeString);
                 public record OptionsQuote(string PutCallCode);
                 public record OptionsSecurityInfo(string PutCallCode, string UnderlyingSchwabSecurityID, decimal StrikePrice,
                               OptionExpiryDate OptionExpiryDate);
-                public record Order_(string SchwabOrderID, string AccountNumber, Order_ Order, AccountInfo AccountInfo,
+                public record Order_(string SchwabOrderID, string AccountNumber, Order_ Order, AccountInfo AccountInfo, AdvancedOrderInfo AdvancedOrderInfo,
                               ClientChannelInfo ClientChannelInfo, LifecycleCreatedTimestamp LifecycleCreatedTimestamp,
                               string LifecycleSchwabOrderID, EntryTimestamp EntryTimestamp, ExpiryTimeStamp ExpiryTimeStamp,
                               bool AutoConfirm, PlanSubmitDate PlanSubmitDate, string SourceOMS, string FirmID, string OrderAccount,
@@ -275,6 +281,9 @@ namespace SchwabApiCS
                     {
                         try
                         {
+                            if (BaseEvent.OrderCreatedEventEquityOrder.Order.Order.AssetOrderEquityOrderLeg.OrderInstruction.ExecutionStrategy == null ||
+                                 BaseEvent.OrderCreatedEventEquityOrder.Order.Order.AssetOrderEquityOrderLeg.OrderInstruction.ExecutionStrategy.LimitExecutionStrategy == null)
+                                return null;
                             return BaseEvent.OrderCreatedEventEquityOrder.Order.Order.AssetOrderEquityOrderLeg.OrderInstruction.ExecutionStrategy.LimitExecutionStrategy.LimitPrice;
                         }
                         catch { return null; }
@@ -353,7 +362,7 @@ namespace SchwabApiCS
                 public record RoutedExecutionTimestamp(string DateTimeString);
                 public record RoutedTime(string DateTimeString);
                 public record RouteInfo(string RouteName, int RouteSequenceNumber, RoutedExecutionTimestamp RoutedExecutionTimestamp,
-                              Quote Quote, string RouteRequestedType, int RoutedQuantity, decimal RoutedPrice, string RouteStatus,
+                              Quote Quote, string RouteRequestedType, int RoutedQuantity, decimal? RoutedPrice, string RouteStatus,
                               string ClientOrderID, RoutedTime RoutedTime, string RouteTimeInForce, object RouteAcknowledgmentTimeStamp);
             }
             #endregion Execution Requested
@@ -369,10 +378,6 @@ namespace SchwabApiCS
                 public record Base_Event(string EventType, ExecutionCreatedEventExecutionInfo ExecutionCreatedEventExecutionInfo);
                 public record ExecutionCreatedEventExecutionInfo(string EventType, string LegId, ExecutionInfo ExecutionInfo,
                               AsOfTimeStamp AsOfTimeStamp, int RouteSequenceNumber);
-                public record ExecutionInfo(int ExecutionSequenceNumber, string ExecutionId, int ExecutionQuantity,
-                              ExecutionTimeStamp ExecutionTimeStamp, string ExecutionTransType, string ExecutionCapacityCode,
-                              string RouteName, int RouteSequenceNumber, VenuExecutionTimeStamp VenuExecutionTimeStamp, string CancelType,
-                              string ReportingCapacityCode, object AsOfTimeStamp, string ClientOrderID);
                 public record ExecutionTimeStamp(string DateTimeString);
                 public record VenuExecutionTimeStamp(string DateTimeString);
             }
@@ -418,9 +423,13 @@ namespace SchwabApiCS
                 public record Base_Event(string EventType, OrderUROutCompletedEvent_ OrderUROutCompletedEvent);
                 public record ExecutionTimeStamp(string DateTimeString);
                 //public record LeavesQuantity();
-                public record OrderUROutCompletedEvent_(string EventType, string LegId, string ExecutionId, decimal? LeavesQuantity,
+                public record OrderUROutCompletedEvent_(string EventType, string LegId, string ExecutionId, object LeavesQuantity,
                               int CancelQuantity, string LegStatus, string LegSubStatus, string OutCancelType,
-                              VenueExecutionTimeStamp VenueExecutionTimeStamp, ExecutionTimeStamp ExecutionTimeStamp, string RouteName);
+                              List<ValidationDetail> ValidationDetail, VenueExecutionTimeStamp VenueExecutionTimeStamp,
+                              ExecutionTimeStamp ExecutionTimeStamp, string RouteName);
+
+                public record ValidationDetail(string SchwabOrderID, string NgOMSRuleName, string NgOMSRuleDescription);
+
                 public record VenueExecutionTimeStamp(string DateTimeString);
             }
             #endregion Order UROut Completed
@@ -499,28 +508,30 @@ namespace SchwabApiCS
             {
                 public Base_Event BaseEvent { get; set; }
 
-                public record ActualChargedFeesCommissionAndTax(object StateTaxWithholding, object FederalTaxWithholding, object SECFees,
-                              object ORF, object FTT, object TaxWithholding1446, object GoodsAndServicesTax, object IOF, object TAF,
-                              object CommissionAmount);
                 public record Base_Event(string EventType,
                              OrderFillCompletedEventOrderLegQuantityInfo OrderFillCompletedEventOrderLegQuantityInfo);
-                public record ExecutionInfo(int ExecutionSequenceNumber, string ExecutionId, string VenueExecutionID, int ExecutionQuantity,
-                              decimal ExecutionPrice, ExecutionTimeStamp ExecutionTimeStamp, string ExecutionTransType,
-                              string ExecutionBroker, string ExecutionCapacityCode, string RouteName, int RouteSequenceNumber,
-                              VenuExecutionTimeStamp VenuExecutionTimeStamp, string ReportingCapacityCode,
-                              object ActualChargedCommissionAmount, object AsOfTimeStamp,
-                              ActualChargedFeesCommissionAndTax ActualChargedFeesCommissionAndTax, string ClientOrderID);
-                public record ExecutionTimeStamp(string DateTimeString);
                 public record OrderFillCompletedEventOrderLegQuantityInfo(string EventType, string LegId, string LegStatus,
-                              QuantityInfo QuantityInfo, string LegSubStatus, ExecutionInfo ExecutionInfo,
+                              QuantityInfo QuantityInfo, decimal? PriceImprovement, string LegSubStatus, ExecutionInfo ExecutionInfo,
                               OrderInfoForTransactionPosting OrderInfoForTransactionPosting);
-                public record OrderInfoForTransactionPosting(decimal LimitPrice, string OrderTypeCode, string BuySellCode, int Quantity,
-                              object StopPrice, string Symbol, string SchwabSecurityID, string SolicitedCode, string AccountingRuleCode,
+                public record OrderInfoForTransactionPosting(decimal? LimitPrice, string OrderTypeCode, string BuySellCode, int Quantity,
+                              decimal? StopPrice, string Symbol, string SchwabSecurityID, string SolicitedCode, string AccountingRuleCode,
                               string SettlementType, string OrderCreatedUserID, string OrderCreatedUserType, string ClientProductCode);
                 public record QuantityInfo(string ExecutionID, int CumulativeQuantity, object LeavesQuantity, decimal AveragePrice);
-                public record VenuExecutionTimeStamp(string DateTimeString);
             }
             #endregion Order Fill Completed
+
+            public record ActualChargedFeesCommissionAndTax(object StateTaxWithholding, object FederalTaxWithholding, object SECFees,
+              object ORF, object FTT, object TaxWithholding1446, object GoodsAndServicesTax, object IOF, object TAF,
+              object CommissionAmount);
+
+            public record ExecutionInfo(int ExecutionSequenceNumber, string ExecutionId, string? VenueExecutionID,
+              int? ExecutionQuantity, decimal? ExecutionPrice, ExecutionTimeStamp ExecutionTimeStamp, string ExecutionTransType,
+              string ExecutionBroker, string ExecutionCapacityCode, string RouteName, int RouteSequenceNumber,
+              VenuExecutionTimeStamp VenuExecutionTimeStamp, string ReportingCapacityCode, string CancelType,
+              decimal? PrincipalAmmount, decimal? ActualChargedCommissionAmount,
+              object? AsOfTimeStamp, ActualChargedFeesCommissionAndTax? ActualChargedFeesCommissionAndTax, string ClientOrderID);
+            public record ExecutionTimeStamp(string DateTimeString);
+            public record VenuExecutionTimeStamp(string DateTimeString);
         }
     }
 

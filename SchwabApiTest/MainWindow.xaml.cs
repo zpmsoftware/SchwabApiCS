@@ -458,7 +458,7 @@ namespace SchwabApiTest
                 var aaplDayPrices1 = schwabApi.GetPriceHistory("AAPL", SchwabApi.PeriodType.year, 1, SchwabApi.FrequencyType.daily,
                                                             1, DateTime.Today.AddDays(-8), DateTime.Today.AddDays(1), false); // this picks up todays price
                 var aapl15minPrices = schwabApi.GetPriceHistory("AAPL", SchwabApi.PeriodType.day, 1, SchwabApi.FrequencyType.minute,
-                                                               15, DateTime.Today.AddDays(-2), DateTime.Today.AddDays(1), true);
+                                                               15, DateTime.Today.AddDays(-3), DateTime.Today.AddDays(1), true);
                 //TestExceptionHandling(); // uncomment to test
             }
             catch (Exception ex)
