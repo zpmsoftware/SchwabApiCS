@@ -13,6 +13,13 @@ namespace SchwabApiCS
 {
     public partial class Streamer
     {
+        /*
+         Known activity codes:
+         OrderAccepted,  OrderCreated, CancelAccepted, ChangeCreated, ChangeAccepted, OrderFillCompleted, SUBSCRIBED,
+         ExecutionRequested,  ExecutionRequestCreated, ExecutionRequestCompleted, ExecutionCreated, OrderUROutCompleted,
+         OrderMonitorCreated, OrderMonitorCompleted, OrderExpired
+         */
+
         public class AccountActivityService : Service
         {
             public delegate void AccountActivityCallback(List<AccountActivity> data);

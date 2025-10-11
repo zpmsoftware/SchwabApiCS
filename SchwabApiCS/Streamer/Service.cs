@@ -58,8 +58,10 @@ namespace SchwabApiCS
             {
                 if (response.content.code != 0)
                 {
-                    throw new Exception(string.Format(
-                        "streamer service" + service.ToString() + " {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg));
+                    var msg = string.Format(
+                        "streamer service" + service.ToString() + " {0} Error: {1} {2} ", response.command, response.content.code, response.content.msg);
+                    // SchwabApi.LogMessage(msg); // for debugging
+                    throw new Exception(msg);
                 }
 
                 switch (response.command)

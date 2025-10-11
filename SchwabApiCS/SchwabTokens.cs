@@ -23,10 +23,13 @@ namespace SchwabApiCS
         /// Loads saved tokens info
         /// </summary>
         /// <param name="_tokenDataFileName">full path name of tokens file</param>
+        /// <param name="_reAuthorizeOnWeekends ">if true, set expiration date to saturday or sunday</param>  
         /// <exception cref="SchwabApiException"></exception>
-        public SchwabTokens(string _tokenDataFileName)
+        public SchwabTokens(string _tokenDataFileName, bool _reAuthorizeOnWeekends = false)
         {
-            this.tokenDataFileName = _tokenDataFileName;
+            tokenDataFileName = _tokenDataFileName;
+            ReAuthorizeOnWeekends = _reAuthorizeOnWeekends;
+
             using (StreamReader sr = new StreamReader(tokenDataFileName))  // load saved tokens
             {
                 var jsonTokens = sr.ReadToEnd();
@@ -43,7 +46,16 @@ namespace SchwabApiCS
             if (string.IsNullOrEmpty(tokens.Redirect_uri)) throw new SchwabApiException("SchwabRedirect_uri is not defined");
         }
 
-        public bool NeedsReAuthorization {  get { return DateTime.Now >= tokens.RefreshTokenExpires; } }
+        /// <summary>
+        /// if true, re-authorize on startup, saturday or sunday
+        /// </summary>
+        public bool ReAuthorizeOnWeekends { get; set; } = false; // if true, re-authorize on saturday or sunday
+
+        /// <summary>
+        /// Gets a value indicating whether re-authorization is required based on the expiration of the refresh token 
+        /// and specific conditions such as weekend re-authorization settings using bool ReAuthorizeOnWeekends.
+        /// </summary>
+        public bool NeedsReAuthorization { get { return (DateTime.Now >= tokens.RefreshTokenExpires); } }
 
         public System.Uri AuthorizeUri
         {
@@ -146,6 +158,9 @@ namespace SchwabApiCS
                 {
                     this.tokens.RefreshToken = r.refresh_token;
                     this.tokens.RefreshTokenExpires = DateTime.Today.AddDays(7); // only update expires when RefreshToken changes
+
+                    while (ReAuthorizeOnWeekends && this.tokens.RefreshTokenExpires.DayOfWeek != DayOfWeek.Saturday)
+                        this.tokens.RefreshTokenExpires = this.tokens.RefreshTokenExpires.AddDays(-1); // back up to Saturday.
                 }
                 SaveTokens();
             }

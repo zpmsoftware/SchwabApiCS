@@ -42,6 +42,7 @@ namespace SchwabApiCS_WPF
                 this.Title = "Schwab API Authorize";
                 this.Height = 900;
                 this.Width = 1100;
+                this.Topmost = true;
 
                 webView = new WebView2() { Name = "webView", Height = 900, Width = 1100 };
                 var grid = new Grid();

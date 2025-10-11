@@ -1,5 +1,5 @@
 ﻿// <copyright file="MarketData.cs" company="ZPM Software Inc">
-// Copyright © 2024 ZPM Software Inc. All rights reserved.
+// Copyright © 2024-2025 ZPM Software Inc. All rights reserved.
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
@@ -424,8 +424,9 @@ namespace SchwabApiCS
                                             int frequency, DateTime? startDate, DateTime? endDate, bool needExtendedHoursData, bool needPreviousClose = false)
         {
             const string fmt = "/pricehistory?symbol={0}&periodType={1}&period={2}&frequencyType={3}&frequency={4}&needExtendedHoursData={5}&needPreviousClose={6}";
-            
-            var url = string.Format(fmt, symbol.ToUpper(), periodType, period, frequencyType, frequency, needExtendedHoursData.ToString().ToLower(), needPreviousClose.ToString().ToLower());
+            var queryFrequency = (frequencyType == FrequencyType.minute && frequency <= 3) ? 1 : frequency; // use 1 minute if 2 or 3 minute candles
+            var url = string.Format(fmt, symbol.ToUpper(), periodType, period, frequencyType, queryFrequency, needExtendedHoursData.ToString().ToLower(), needPreviousClose.ToString().ToLower());
+
             if (startDate != null)
                 url += "&startDate=" + SchwabApi.DateTime_to_ApiDateTime((DateTime)startDate).ToString();
             if (endDate != null)
@@ -458,6 +459,20 @@ namespace SchwabApiCS
                             {
                                 if (candles[x-1].dateTime == candles[x].dateTime)
                                     candles.RemoveAt(x);
+                            }
+
+                            if (queryFrequency != frequency) // convert 1 minute candles to 2 or 3 minute
+                            {
+                                candles = candles.GroupBy(r => r.dateTime.AddMinutes(-(r.dateTime.Minute % frequency)))
+                                                .Select(r => new Candle()
+                                                {
+                                                    dateTime = r.Key,
+                                                    volume = r.Sum(r => r.volume),
+                                                    high = r.Max(r => r.high),
+                                                    low = r.Min(r => r.low),
+                                                    open = r.First<Candle>().open,
+                                                    close = r.Last<Candle>().close,
+                                                }).ToList();
                             }
                             result.Data.candles = candles;
                         }
@@ -556,6 +571,7 @@ namespace SchwabApiCS
 
         /// <summary>
         /// Get Market hours for a date.
+        /// can only look back 7 days.
         /// </summary>
         /// <param name="date">if null, then for today.</param>
         /// <returns>MarketHours</returns>
@@ -566,6 +582,7 @@ namespace SchwabApiCS
 
         /// <summary>
         /// Get Market hours for a date - async.
+        /// can only look back 7 days.
         /// </summary>
         /// <param name="date">if null, then for today.</param>
         /// <returns>Task<MarketHours></returns>

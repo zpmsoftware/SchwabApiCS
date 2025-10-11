@@ -195,7 +195,6 @@ namespace SchwabApiCS
                 if (i != null)
                     Data.Remove(i); // don't process anymore
             }
-
         }
 
         public class LevelOneEquity : INotifyPropertyChanged
@@ -275,7 +274,7 @@ namespace SchwabApiCS
                     if (allFields == null)
                     {
                         var count = Enum.GetNames(typeof(Fields)).Length;
-                        allFields = string.Join(", ", Enumerable.Range(0, count));
+                        allFields = string.Join(",", Enumerable.Range(0, count));
                     }
                     return allFields;
                 }

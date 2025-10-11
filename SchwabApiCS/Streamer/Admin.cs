@@ -19,6 +19,7 @@ namespace SchwabApiCS
                 streamer.isLoggedIn = true;
                 while (streamer.requestQueue.Count > 0)
                 {
+                    // SchwabApi.LogMessage("Sending queued request: " + streamer.requestQueue[0]); // for debugging
                     streamer.websocket.Send(streamer.requestQueue[0]);
                     streamer.requestQueue.RemoveAt(0);
                 }

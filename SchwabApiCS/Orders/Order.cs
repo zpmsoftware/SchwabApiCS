@@ -90,7 +90,17 @@ namespace SchwabApiCS
         public override string ToString()
         {
             if (orderStrategyType == OrderStrategyTypes.OCO.ToString()) {
-                return "";
+                var oco = string.Format("{0} {1} {2} {3} {4} {5}",
+                    accountNumber, orderStrategyType, orderType,
+                    enteredTime == null ? "" : ((DateTime)enteredTime).ToString("yyyy-MM-dd hh:mm:ss tt,"),
+                    status, orderId
+                    );
+                foreach (var cos in childOrderStrategies)
+                {
+                    var leg = cos.orderLegCollection[0];  // assume only one leg in OCO
+                    oco += string.Format(", ({0} {1} Qty: {2})", cos.orderType, leg.instrument.symbol, leg.instruction, leg.quantity.ToString("#.##"));
+                }
+                return oco;
             }
             return string.Format("{0} {1} {2} {3} {4} {5} Qty: {6}, {7} {8}",
                 accountNumber, orderStrategyType, orderType, orderLegCollection[0].instrument.symbol, orderLegCollection[0].instruction,

@@ -3,12 +3,10 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
-using System;
 using Newtonsoft.Json;
 using System.ComponentModel;
-using static SchwabApiCS.SchwabApi;
 using System.Security.Authentication;
-using WebSocket4Net;
+using static SchwabApiCS.SchwabApi;
 
 // https://json2csharp.com/
 namespace SchwabApiCS
@@ -89,7 +87,9 @@ namespace SchwabApiCS
 
             websocket.Opened += (s, e) =>
             {
-                websocket.Send(LoginRequest());
+                var request = LoginRequest();
+                // SchwabApi.LogMessage(request); // for debugging
+                websocket.Send(request);
             };
 
             websocket.Closed += (socket, evt) =>
@@ -101,6 +101,8 @@ namespace SchwabApiCS
             // handle received messages
             websocket.MessageReceived += (socket, messageEvent) =>
             {
+                // SchwabApi.LogMessage(messageEvent.Message); // for debugging
+
                 _syncContext.Post(state =>
                 {
                     try
@@ -194,7 +196,11 @@ namespace SchwabApiCS
                         isLoggedIn = false;
                         websocket = new WebSocket4Net.WebSocket(streamerInfo.streamerSocketUrl,
                             sslProtocols: SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls | SslProtocols.None);
-                        websocket.Opened += (s, e) => { websocket.Send(LoginRequest()); };
+                        websocket.Opened += (s, e) => {
+                            var request = LoginRequest();
+                            // SchwabApi.LogMessage(request); // for debugging
+                            websocket.Send(request);
+                        };
                         websocket.Closed += (socket, evt) => { if (requestQueue.Count > 0) websocket.Open(); };
                         // Reattach other event handlers as needed
                         websocket.Open();
@@ -228,7 +234,10 @@ namespace SchwabApiCS
             }
 
             if (isLoggedIn)
+            {
+                // SchwabApi.LogMessage(jsonRequest); // for debugging
                 websocket.Send(jsonRequest); // send immediately
+            }
             else // login not achnowledged yet
                 requestQueue.Add(jsonRequest); // add to queue to send when login complete
         }

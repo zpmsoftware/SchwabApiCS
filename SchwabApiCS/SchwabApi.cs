@@ -3,6 +3,16 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+/* Version 7.4.7 - released 2025-10-11 
+    1. Fix in Streamer class needed due to Schwab api changes.
+    2. Added support for 2 and 3 minute candles.
+    3. Added method to log error and debug messages:
+	    public static void LogMessage(string message, [CallerMemberName] string memberName = "") 
+        that uses "public delegate void ExternalLoggingMethod(string message, string? callerName = null)"
+    4. Added option to adjust RefreshTokenExpires to a weekend date:
+	    public SchwabTokens(string _tokenDataFileName, bool _reAuthorizeOnWeekends = false)
+ */
+
 /* Version 7.4.6 - released 2025-05-26 AccountActivity streamer - a number of changes adding or changing fields found in more
                                        complex orders or different types or orders.  Fixes to allow setting timzones.
                                        Added error handling to streamer class. OnError?.Invoke to pass exception to UI thread.
@@ -47,7 +57,7 @@ namespace SchwabApiCS
     public partial class SchwabApi
     {
 
-        public const string Version = "7.4.6";
+        public const string Version = "7.4.7";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -136,6 +146,9 @@ namespace SchwabApiCS
         public static long TimeZoneAdjust { private set; get; }
         public static long JsonTimeZoneAdjust { private set; get; }
 
+        public delegate void ExternalLoggingMethod(string message, string? callerName = null);
+        public static ExternalLoggingMethod? LoggingMethod = null; // set to your method to log messages
+
         internal static SchwabTokens schwabTokens;
         internal IList<AccountNumber> accountNumberHashs; // load once
         internal const string utcDateFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
@@ -159,6 +172,19 @@ namespace SchwabApiCS
             Task.WaitAll(t, t2);
             userPreferences = t.Result.Data;
             accountNumberHashs = t2.Result.Data;
+        }
+
+        /// <summary>
+        /// Logs a message along with the name of the calling member.   
+        /// </summary>
+        /// <remarks>This method delegates the logging operation to "LoggingMethod"
+        /// <param name="message">The message to log. This value cannot be null or empty.</param>
+        /// <param name="memberName">The name of the member that invoked this method. This parameter is optional and is automatically populated
+        /// by the compiler with the name of the calling member if not explicitly provided.</param>
+        public static void LogMessage(string message, [CallerMemberName] string memberName = "")
+        {
+            if (LoggingMethod != null)
+                LoggingMethod(message, memberName);
         }
 
         private string _httpClientAccessToken = "";
@@ -282,7 +308,7 @@ namespace SchwabApiCS
                 {
                     var ex = (SchwabApiException)apiException.InnerException;
                     this.HasError = hasError;
-                    this.ResponseCode =(int)(ex.Response.StatusCode);
+                    this.ResponseCode = ex.Response == null || ex.Response.StatusCode == null ? 0 : (int)(ex.Response.StatusCode);
                     this.ResponseText = ex.Message;
                 }
             }
@@ -638,10 +664,10 @@ namespace SchwabApiCS
             public override string Message { 
                 get
                 {
-                    var msg = base.Message + "\n\n" +
+                    var msg = base.Message + "\n" +
                            Url.Replace("?", "\n?");
                     if (!String.IsNullOrWhiteSpace(SchwabClientCorrelId))
-                           msg += "\n\nSchwabClientCorrelId = " + SchwabClientCorrelId;
+                           msg += "\nSchwabClientCorrelId = " + SchwabClientCorrelId;
                     return msg;
                 }
             }
