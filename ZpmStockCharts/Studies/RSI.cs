@@ -124,6 +124,11 @@ namespace ZpmPriceCharts.Studies
             return values;
         }
 
+        public override void CalculateLast2(CandleSet candleSet_)
+        {
+            throw new NotImplementedException("OBV does not support CalculateLast2.");
+        }
+
         public override void Draw(PriceChart chart)
         {
             UiElements.Clear();

@@ -3,6 +3,20 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+/* Version 7.5.0 - released 2025-11-23
+    1. Changed target framework to .Net 10 (Visual Studio 2026 recommended)
+    2. SchwabApiCS.Orders.Order.GetOrderFillDetails() - new method
+    3. SchwabApiCS.MarketData.GetPriceHistoryAsync - better error handling
+    4. SchwabApiCS.SchwabApi.ExternalLoggingMethod - Changed, added new parameter: bool displayMessage
+    5. SchwabApiCS.SchwabApi.LogMessage - Changed, added new parameter: bool displayMessage
+
+    6. ZpmPriceCharts.CandleSet - added suppport for 2 & 3 minute candles
+    7. ZpmPriceCharts.PriceChart.xaml.cs - refactored for performance
+    8. ZpmPriceCharts.Studies.Studies - Changes to studies to increase performance, some improvements, Array.Resize fix when in Release mode.
+    9. ZpmPriceCharts.Studies.RecentHighLow - refactored
+    10. ZpmPriceCharts.Studies.Stochastic.cs - renamed to ZpmPriceCharts.Studies.Stochastic.cs, and refactored.
+*/
+
 /* Version 7.4.7 - released 2025-10-11 
     1. Fix in Streamer class needed due to Schwab api changes.
     2. Added support for 2 and 3 minute candles.
@@ -146,7 +160,13 @@ namespace SchwabApiCS
         public static long TimeZoneAdjust { private set; get; }
         public static long JsonTimeZoneAdjust { private set; get; }
 
-        public delegate void ExternalLoggingMethod(string message, string? callerName = null);
+        /// <summary>
+        /// External method to log and or display messages
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="displayMessage">true=display and log, false=just log</param>
+        /// <param name="callerName">if null, gets name from stack frame.</param>
+        public delegate void ExternalLoggingMethod(string message, bool displayMessage, string? callerName = null);
         public static ExternalLoggingMethod? LoggingMethod = null; // set to your method to log messages
 
         internal static SchwabTokens schwabTokens;
@@ -181,10 +201,10 @@ namespace SchwabApiCS
         /// <param name="message">The message to log. This value cannot be null or empty.</param>
         /// <param name="memberName">The name of the member that invoked this method. This parameter is optional and is automatically populated
         /// by the compiler with the name of the calling member if not explicitly provided.</param>
-        public static void LogMessage(string message, [CallerMemberName] string memberName = "")
+        public static void LogMessage(string message, bool displayMessage, [CallerMemberName] string memberName = "")
         {
             if (LoggingMethod != null)
-                LoggingMethod(message, memberName);
+                LoggingMethod(message, displayMessage, memberName);
         }
 
         private string _httpClientAccessToken = "";

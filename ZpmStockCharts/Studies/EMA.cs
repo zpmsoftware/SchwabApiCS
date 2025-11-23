@@ -88,8 +88,14 @@ namespace ZpmPriceCharts.Studies
             }
         }
 
-        public void CalculateLast2(CandleSet candleSet)
+        public override void CalculateLast2(CandleSet candleSet)
         {
+            if (candleSet.Candles == null || candleSet.Candles.Count == 0)
+            {
+                Calculate(candleSet);  // first time calculation
+                return;
+            }
+
             TimeLastCalculated = DateTime.Now;
             List<Candle> candles = candleSet?.Candles;
 
@@ -114,7 +120,7 @@ namespace ZpmPriceCharts.Studies
             // Adjust Values array if a new candle was added
             if (Values.Length < candles.Count)
             {
-                Array.Resize(ref Values, candles.Count);
+                Array_Resize(ref Values, candles.Count);
             }
 
             // Calculate EMA for the last two candles

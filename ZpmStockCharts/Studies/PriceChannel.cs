@@ -74,7 +74,7 @@ namespace ZpmPriceCharts.Studies
                 {
                     for (int x = periods; x < candles.Count; x++)
                     {
-                        high = candles[x-periods].Close;
+                        high = candles[x - periods].Close;
                         for (i = x - periods + 1; i < x; i++)
                         {
                             if (candles[i].Close > high)
@@ -83,7 +83,7 @@ namespace ZpmPriceCharts.Studies
                         High[x] = high;
 
                         low = candles[x - periods].Close;
-                        for (i = x - periods+1; i < x; i++)
+                        for (i = x - periods + 1; i < x; i++)
                         {
                             if (candles[i].Close < low)
                                 low = candles[i].Close;
@@ -113,6 +113,11 @@ namespace ZpmPriceCharts.Studies
                     }
                 }
             }
+        }
+
+        public override void CalculateLast2(CandleSet candleSet_)
+        {
+            throw new NotImplementedException("PriceChannel does not support CalculateLast2.");
         }
 
         public override void Draw(ZpmPriceCharts.PriceChart chart)

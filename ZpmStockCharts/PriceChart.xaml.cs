@@ -27,8 +27,9 @@ namespace ZpmPriceCharts
         public string Description { get; set; }
 
         private int _startCandle;
-        public int StartCandle { 
-            get { return _startCandle; } 
+        public int StartCandle
+        {
+            get { return _startCandle; }
             set { _startCandle = Math.Max(0, value); }
         }
         public int NbrCandles { get; set; }  // candles that can be displayed
@@ -36,7 +37,7 @@ namespace ZpmPriceCharts
         public double PriceFactor { get; set; } // number of pixels per $
 
         const double borderchartBorder = 1; // allow for chart border thickness
-        const int MaxPriceLabels = 15;
+        const int DesiredGridLines = 8; // Aim for about 8 grid lines (7 intervals)
 
         //public TimeSpan Period { get; set; }
         private double TopPrice { get; set; }
@@ -69,8 +70,9 @@ namespace ZpmPriceCharts
 
         public string DecimalFormat = "N2";
 
-        public List<Candle> Candles { 
-            get; 
+        public List<Candle> Candles
+        {
+            get;
             protected set;
         }  // candles, with leading prepend candles removed.
 
@@ -105,7 +107,7 @@ namespace ZpmPriceCharts
             MousePriceBox.Child = MousePrice;
 
             MouseDateBox = new Border() { CornerRadius = new CornerRadius(4), Background = System.Windows.Media.Brushes.LightGray, Visibility = Visibility.Hidden, Margin = new Thickness(0, 3, 0, 0) };
-            MouseDate = new TextBlock() { Text = "12/30/2017", FontSize=12, Foreground = System.Windows.Media.Brushes.Black, Margin = new Thickness(3, 0, 3, 1) };  //Padding = new Thickness(5, 0, 5, 0)
+            MouseDate = new TextBlock() { Text = "12/30/2017", FontSize = 12, Foreground = System.Windows.Media.Brushes.Black, Margin = new Thickness(3, 0, 3, 1) };  //Padding = new Thickness(5, 0, 5, 0)
             MouseDateBox.Child = MouseDate;
             System.Windows.Controls.Canvas.SetTop(MouseDate, 10);
 
@@ -114,8 +116,10 @@ namespace ZpmPriceCharts
             MouseY = ChartLine(GridColor);
         }
 
-        public int PrependCandlesNeeded 
-        {  
+        public bool ShowExtendedHours { get; set; } = true;
+
+        public int PrependCandlesNeeded
+        {
             get
             {
                 if (ChartStudies.Count == 0)
@@ -144,8 +148,8 @@ namespace ZpmPriceCharts
                 ButtonText = buttonText;
             }
 
-            public Studies.Study Study {  get; set; }
-            public string Name {  get; set; } // UIElement Name=
+            public Studies.Study Study { get; set; }
+            public string Name { get; set; } // UIElement Name=
             public string ButtonText { get; set; }  // text to show in the button
             public string StudyToolTip { get; set; }
             public bool Show { get; set; }
@@ -212,7 +216,7 @@ namespace ZpmPriceCharts
                 FontSize = 12,
                 Height = 24,
                 Tag = cs,
-                
+
             };
             if (cs.Show)
                 tbutton.Background = cs.Study.Color;
@@ -309,21 +313,42 @@ namespace ZpmPriceCharts
             foreach (var s in ChartStudies)
                 s.Study.Calculate(candleSet);
 
-            Candles = Cset.Candles.Where(r => r.DateTime >= Cset.StartTime).ToList();
+            SetDisplayedCandles();
 
             SetStartCandle(Candles.Count - NbrCandles);
             ReDraw(drawCustomChartElements);
         }
 
+        private void SetDisplayedCandles()
+        {
+            if (ShowExtendedHours)
+            {
+                Candles = Cset.Candles.Where(r => r.DateTime >= Cset.StartTime).ToList();
+            }
+            else
+            {
+                Candles = Cset.Candles.Where(r => r.DateTime >= Cset.StartTime && !Cset.FrequencyType.IsAfterHours(r.DateTime)).ToList();
+            }
+        }
+
         private SolidColorBrush shadeColor = null;
         private SolidColorBrush shadeTextColor = null;
 
+        // Reusable element pools
+        private List<Rectangle> afterHoursShadeRects = new List<Rectangle>();
+        private List<TextBlock> afterHoursShadeTexts = new List<TextBlock>();
+        private int afterHoursShadeRectCount = 0;
+        private int afterHoursShadeTextCount = 0;
+
+        private List<Rectangle> volumeRects = new List<Rectangle>();
+        private int volumeRectCount = 0;
+
+        private List<Line> candleWickLines = new List<Line>();
+        private List<Rectangle> candleBodyRects = new List<Rectangle>();
+        private int candleCount = 0;
+
         // Drawing Groups, in priority order. Collection of UI elements in each group
-        protected List<System.Windows.UIElement> AfterHoursShadingElements;
-        protected List<System.Windows.UIElement> VolumeElements;
         protected List<System.Windows.UIElement> GridLinesElements;
-        protected List<System.Windows.UIElement> CandleElements;
-        protected List<System.Windows.UIElement> LaxisElements;
         protected List<System.Windows.UIElement>? CustomElements;
 
         private double MaxVolume = 0;
@@ -335,7 +360,7 @@ namespace ZpmPriceCharts
         /// Redraw chart
         /// </summary>
         /// <param name="drawCustomChartElements">List of custom UI elements to add to chart. Use null if none</param>
-        public void ReDraw(DrawCustomChartElements? drawCustomChartElements = null) 
+        public void ReDraw(DrawCustomChartElements? drawCustomChartElements = null)
         {
             currentDrawCustomChartElements = drawCustomChartElements;
             DrawAfterHoursShading();
@@ -353,54 +378,10 @@ namespace ZpmPriceCharts
             UpdateChartArea();
         }
 
-        private void UpdateChartArea()
-        {
-            if (CandleElements == null) // candles not loaded yet
-                return;
-
-            // last item that is drawn is on top.
-            ChartArea.Children.Clear();
-
-            foreach (var e in AfterHoursShadingElements)
-                ChartArea.Children.Add(e);
-            foreach (var e in VolumeElements)
-                ChartArea.Children.Add(e);
-            foreach (var e in GridLinesElements)
-                ChartArea.Children.Add(e);
-
-            foreach (var cs in ChartStudies)
-            {
-                if (cs.Show)
-                {
-                    foreach (var e in cs.Study.UiElements)
-                        ChartArea.Children.Add(e);
-                }
-            }
-
-            if (CustomElements != null) { 
-                foreach (var e in CustomElements)
-                    ChartArea.Children.Add(e);
-            }
-
-            ChartArea.Children.Add(MouseX);
-            ChartArea.Children.Add(MouseY);
-
-            foreach (var e in CandleElements)
-                ChartArea.Children.Add(e);
-
-            DrawHeading(StartCandle + NbrCandles - 1);
-
-            hScrollBar.Maximum = Candles.Count - NbrCandles;
-            hScrollBar.Minimum = 0;
-            hScrollBar.Value = StartCandle;
-            hScrollBar.LargeChange = NbrCandles - 1;
-            hScrollBar.ViewportSize = NbrCandles;
-
-        }
-
         private void DrawAfterHoursShading()
         {
-            AfterHoursShadingElements = new List<System.Windows.UIElement>();
+            afterHoursShadeRectCount = 0;
+            afterHoursShadeTextCount = 0;
             if ((int)Cset.FrequencyType.FrequencyTypeId < 1000)
             { // shading for after hours times
                 var sCandle = 0;
@@ -429,15 +410,24 @@ namespace ZpmPriceCharts
 
             if (isAfterHours)
             {
-                Rectangle body = new Rectangle()
+                Rectangle body;
+                if (afterHoursShadeRectCount < afterHoursShadeRects.Count)
                 {
-                    Height = ChartAreaActualHeight(),
-                    Width = last ? ChartArea.ActualWidth - CandleWidth * sCandle : CandleWidth * (x - sCandle),
-                    Fill = shadeColor
-                };
+                    body = afterHoursShadeRects[afterHoursShadeRectCount];
+                }
+                else
+                {
+                    body = new Rectangle()
+                    {
+                        Fill = shadeColor
+                    };
+                    afterHoursShadeRects.Add(body);
+                }
+                afterHoursShadeRectCount++;
+                body.Height = ChartAreaActualHeight();
+                body.Width = last ? ChartArea.ActualWidth - CandleWidth * sCandle : CandleWidth * (x - sCandle);
                 System.Windows.Controls.Canvas.SetTop(body, 0);
                 System.Windows.Controls.Canvas.SetLeft(body, sCandle * CandleWidth);
-                AfterHoursShadingElements.Add(body);
             }
             else if (x - sCandle > 5)
             {
@@ -454,39 +444,56 @@ namespace ZpmPriceCharts
                 else if (width <= 96)
                     fontSize = 16;
 
-                var txt = new TextBlock()
+                TextBlock txt;
+                if (afterHoursShadeTextCount < afterHoursShadeTexts.Count)
                 {
-                    Text = Candles[x + StartCandle - 1].DateTime.ToString("ddd MM/dd/yyyy"),
-                    Width = width,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center,
-                    Foreground = shadeTextColor,
-                    FontSize = fontSize
-                };
+                    txt = afterHoursShadeTexts[afterHoursShadeTextCount];
+                }
+                else
+                {
+                    txt = new TextBlock()
+                    {
+                        TextWrapping = TextWrapping.Wrap,
+                        TextAlignment = TextAlignment.Center,
+                        Foreground = shadeTextColor
+                    };
+                    afterHoursShadeTexts.Add(txt);
+                }
+                afterHoursShadeTextCount++;
+                txt.Text = Candles[x + StartCandle - 1].DateTime.ToString("ddd MM/dd/yyyy");
+                txt.Width = width;
+                txt.FontSize = fontSize;
                 System.Windows.Controls.Canvas.SetTop(txt, 5);
                 System.Windows.Controls.Canvas.SetLeft(txt, sCandle * CandleWidth);
-                AfterHoursShadingElements.Add(txt);
             }
         }
 
         private void DrawVolume()
         {
-            VolumeElements = new List<System.Windows.UIElement>();
-
+            volumeRectCount = 0;
             double volumeHeight = Math.Floor(ChartAreaActualHeight() / 4);
             Brush volumeColor = new SolidColorBrush(Color.FromArgb(128, 90, 90, 255));
             for (int x = 0; x < NbrCandles && x + StartCandle < Candles.Count; x++)
             {
-                Rectangle body = new Rectangle()
+                Rectangle body;
+                if (volumeRectCount < volumeRects.Count)
                 {
-                    Height = volumeHeight * (Candles[StartCandle + x].Volume / MaxVolume),
-                    Width = CandleWidth - 4,
-                    Fill = volumeColor
-                };
+                    body = volumeRects[volumeRectCount];
+                }
+                else
+                {
+                    body = new Rectangle()
+                    {
+                        Fill = volumeColor
+                    };
+                    volumeRects.Add(body);
+                }
+                volumeRectCount++;
+                body.Height = volumeHeight * (Candles[StartCandle + x].Volume / MaxVolume);
+                body.Width = CandleWidth - 4;
                 var top = ChartAreaActualHeight() - body.Height;
                 System.Windows.Controls.Canvas.SetTop(body, top);
                 System.Windows.Controls.Canvas.SetLeft(body, x * CandleWidth + 2);
-                VolumeElements.Add(body);
             }
         }
 
@@ -518,6 +525,27 @@ namespace ZpmPriceCharts
             if (StudyButtons.ActualHeight > 0 || StudyButtons.Children.Count == 0 || ChartArea.ActualHeight == 0)
                 return ChartArea.ActualHeight;
             return ChartArea.ActualHeight - ((System.Windows.Controls.Primitives.ToggleButton)StudyButtons.Children[0]).Height;
+        }
+
+        private double GetNiceInterval(double range, int approxIntervals)
+        {
+            if (range <= 0) return 1;
+
+            double roughInterval = range / approxIntervals;
+            double exponent = Math.Floor(Math.Log10(roughInterval));
+            double fraction = roughInterval / Math.Pow(10, exponent);
+
+            double niceFraction;
+            if (fraction <= 1.5)
+                niceFraction = 1;
+            else if (fraction <= 3)
+                niceFraction = 2;
+            else if (fraction <= 7)
+                niceFraction = 5;
+            else
+                niceFraction = 10;
+
+            return niceFraction * Math.Pow(10, exponent);
         }
 
         private void DrawRaxisAndGridLines() // draw Right axis (Prices)
@@ -552,7 +580,7 @@ namespace ZpmPriceCharts
                 double tp = topPrice; // save
                 int x;
 
-                priceLabelIncrement = (topPrice - bottomPrice) / MaxPriceLabels;
+                priceLabelIncrement = (topPrice - bottomPrice) / DesiredGridLines;
                 double[] incrementLevels = { .5, 1, 2.5, 5, 10, 20, 25, 50, 100, 200, 500, 1000 };
                 for (x = 0; x < incrementLevels.Length; x++)
                 { // adjust price increment to one of the standard ones
@@ -564,15 +592,15 @@ namespace ZpmPriceCharts
                 }
 
                 bottomPrice = Math.Round(((topPrice + bottomPrice) / 2) / priceLabelIncrement, 0) * priceLabelIncrement;
-                bottomPrice -= priceLabelIncrement * Math.Ceiling((double)MaxPriceLabels / 2);
-                topPrice = bottomPrice + priceLabelIncrement * MaxPriceLabels;
+                bottomPrice -= priceLabelIncrement * Math.Ceiling((double)DesiredGridLines / 2);
+                topPrice = bottomPrice + priceLabelIncrement * DesiredGridLines;
 
                 if (topPrice < tp)
                 {
                     priceLabelIncrement = incrementLevels[x + 1];
                     bottomPrice = Math.Round(((topPrice + bottomPrice) / 2) / priceLabelIncrement, 0) * priceLabelIncrement;
-                    bottomPrice -= priceLabelIncrement * Math.Ceiling((double)MaxPriceLabels / 2);
-                    topPrice = bottomPrice + priceLabelIncrement * MaxPriceLabels;
+                    bottomPrice -= priceLabelIncrement * Math.Ceiling((double)DesiredGridLines / 2);
+                    topPrice = bottomPrice + priceLabelIncrement * DesiredGridLines;
                 }
             }
 
@@ -590,7 +618,7 @@ namespace ZpmPriceCharts
                 redrawPrices = true;
             }
 
-            for (var x = TopPrice; x >= BottomPrice; x -= (TopPrice - BottomPrice) / MaxPriceLabels)
+            for (var x = TopPrice; x >= BottomPrice; x -= (TopPrice - BottomPrice) / DesiredGridLines)
             {
                 double top = CalcTop(x);
                 if (x < TopPrice && x > BottomPrice)
@@ -647,7 +675,7 @@ namespace ZpmPriceCharts
                 if (dateText != "")
                 {
                     DrawVerticaChartlLine(x);
-                    var tb = new TextBlock() { Text = dateText, FontSize= fontSize };
+                    var tb = new TextBlock() { Text = dateText, FontSize = fontSize };
                     tb.Foreground = txtColor;
                     Xaxis.Children.Add(tb);
                     System.Windows.Controls.Canvas.SetLeft(tb, ChartCandleCenter(x) - (tb.Text.Length * 6 / 2));
@@ -668,13 +696,13 @@ namespace ZpmPriceCharts
         /// </summary>
         private void DrawCandles()
         {
-            CandleElements = new List<UIElement>();
+            candleCount = 0;
             for (int x = 0; x < NbrCandles && x + StartCandle < Candles.Count; x++)
             {
                 switch (Chart_Type)
                 {
                     case ChartType.CandleStick:
-                        DrawCandleStick(x, Candles[StartCandle + x]);
+                        DrawCandleStickInternal(x, Candles[StartCandle + x]);
                         break;
                 }
             }
@@ -682,11 +710,11 @@ namespace ZpmPriceCharts
         }
 
         /// <summary>
-        /// Draw a candlestick
+        /// Draw a candlestick (internal method to avoid public changes)
         /// </summary>
         /// <param name="idx"></param>
         /// <param name="d"></param>
-        public void DrawCandleStick(int idx, Candle d)
+        private void DrawCandleStickInternal(int idx, Candle d)
         {
             Brush lineBrush;
             Brush bodyBrush;
@@ -707,26 +735,104 @@ namespace ZpmPriceCharts
                 bodyBrush = RedColor;
             }
 
-            var ln = ChartLine(lineBrush);
+            Line ln;
+            if (candleCount < candleWickLines.Count)
+            {
+                ln = candleWickLines[candleCount];
+            }
+            else
+            {
+                ln = new Line()
+                {
+                    Visibility = System.Windows.Visibility.Visible,
+                    StrokeThickness = 1,
+                    SnapsToDevicePixels = true,
+                };
+                ln.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
+                candleWickLines.Add(ln);
+            }
+            ln.Stroke = lineBrush;
             ln.X1 = ln.X2 = ChartCandleCenter(idx);
             ln.Y1 = (TopPrice - d.High) * PriceFactor;
             ln.Y2 = (TopPrice - d.Low) * PriceFactor;
-            CandleElements.Add(ln);
 
             double top = 0;
             double candlePadding = CandleWidth <= 7 ? 1 : 2; // space closer if CandleWith is 5 or 7
-            Rectangle body = new Rectangle()
+            Rectangle body;
+            if (candleCount < candleBodyRects.Count)
             {
-                Height = Math.Max(2, (Math.Abs(d.Open - d.Close) * PriceFactor)),
-                Width = CandleWidth - candlePadding * 2,
-                StrokeThickness = 1,
-                Stroke = ln.Stroke,
-                Fill = bodyBrush
-            };
+                body = candleBodyRects[candleCount];
+            }
+            else
+            {
+                body = new Rectangle()
+                {
+                    StrokeThickness = 1
+                };
+                candleBodyRects.Add(body);
+            }
+            body.Stroke = ln.Stroke;
+            body.Fill = bodyBrush;
+            body.Height = Math.Max(2, (Math.Abs(d.Open - d.Close) * PriceFactor));
+            body.Width = CandleWidth - candlePadding * 2;
             top = (TopPrice - Math.Max(d.Open, d.Close)) * PriceFactor;
-            CandleElements.Add(body);
             System.Windows.Controls.Canvas.SetTop(body, top);
             System.Windows.Controls.Canvas.SetLeft(body, idx * CandleWidth + candlePadding);
+
+            candleCount++;
+        }
+
+        private void UpdateChartArea()
+        {
+            if (candleCount == 0) // candles not loaded yet
+                return;
+
+            // last item that is drawn is on top.
+            ChartArea.Children.Clear();
+
+            for (int i = 0; i < afterHoursShadeRectCount; i++)
+                ChartArea.Children.Add(afterHoursShadeRects[i]);
+            for (int i = 0; i < afterHoursShadeTextCount; i++)
+                ChartArea.Children.Add(afterHoursShadeTexts[i]);
+
+            for (int i = 0; i < volumeRectCount; i++)
+                ChartArea.Children.Add(volumeRects[i]);
+
+            foreach (var e in GridLinesElements)
+                ChartArea.Children.Add(e);
+
+            foreach (var cs in ChartStudies)
+            {
+                if (cs.Show)
+                {
+                    foreach (var e in cs.Study.UiElements)
+                        ChartArea.Children.Add(e);
+                }
+            }
+
+            if (CustomElements != null)
+            {
+                foreach (var e in CustomElements)
+                    ChartArea.Children.Add(e);
+            }
+
+            ChartArea.Children.Add(MouseX);
+            ChartArea.Children.Add(MouseY);
+
+            for (int i = 0; i < candleCount; i++)
+            {
+                ChartArea.Children.Add(candleWickLines[i]);
+                ChartArea.Children.Add(candleBodyRects[i]);
+            }
+
+            DrawHeading(StartCandle + NbrCandles - 1);
+
+            hScrollBar.Maximum = Candles.Count - NbrCandles;
+            hScrollBar.Minimum = 0;
+            hScrollBar.Value = StartCandle;
+            hScrollBar.LargeChange = NbrCandles - 1;
+            hScrollBar.ViewportSize = NbrCandles;
+
         }
 
         /// <summary>
@@ -741,8 +847,8 @@ namespace ZpmPriceCharts
         /// <param name="borderThichness"></param>
         /// <param name="borderColor"></param>
         public Rectangle? BackgroundRectangle(int startCandle, int endCandle, double startPrice, double endPrice,
-                        SolidColorBrush backgroundColor, int borderThickness=0, SolidColorBrush? borderColor=null,
-                        double offsetX = 0, double offsetY=0 )
+                        SolidColorBrush backgroundColor, int borderThickness = 0, SolidColorBrush? borderColor = null,
+                        double offsetX = 0, double offsetY = 0)
         {
             if (endCandle < StartCandle)
                 return null; // candle not in view
@@ -810,7 +916,7 @@ namespace ZpmPriceCharts
         /// <returns></returns>
         public double ChartCandleCenter(int idx)
         {
-            return idx* CandleWidth +Math.Floor(CandleWidth / 2);
+            return idx * CandleWidth + Math.Floor(CandleWidth / 2);
         }
 
         public double ChartCandleLeft(int idx)
@@ -862,7 +968,7 @@ namespace ZpmPriceCharts
         /// </summary>
         /// <param name="brush"></param>
         /// <returns></returns>
-        public Line ChartLine(Brush brush, double thickness=1)
+        public Line ChartLine(Brush brush, double thickness = 1)
         {
             var pln = new Line()
             {
@@ -875,7 +981,7 @@ namespace ZpmPriceCharts
             return pln;
         }
 
-        public Line ChartLine(Brush brush, double x1, double x2, double y1, double y2, double opacity=1)
+        public Line ChartLine(Brush brush, double x1, double x2, double y1, double y2, double opacity = 1)
         {
             var pln = new Line()
             {
@@ -886,7 +992,7 @@ namespace ZpmPriceCharts
                 X1 = x1,
                 X2 = x2,
                 Y1 = y1,
-                Y2= y2,
+                Y2 = y2,
                 Opacity = opacity
             };
             pln.SetValue(RenderOptions.EdgeModeProperty, EdgeMode.Aliased);
@@ -922,7 +1028,7 @@ namespace ZpmPriceCharts
             var line = ChartLine(GridColor);
             line.Y1 = 0;
             line.Y2 = ChartAreaActualHeight();
-            line.X1 = line.X2 = ChartCandleLeft(candleIdx) -1;
+            line.X1 = line.X2 = ChartCandleLeft(candleIdx) - 1;
 
             var txt = new TextBlock()
             {
@@ -981,7 +1087,7 @@ namespace ZpmPriceCharts
             var idx = Math.Min(candleIdx + StartCandle, Candles.Count - 1);
             var d = Candles[idx];
 
-            
+
             tbDate.Text = /*Phs.Interval().Substring(0,1) + ": " + */ d.DateTime.ToString("MM/dd/yyyy");
             tbOpen.Text = "O: " + d.Open.ToString(DecimalFormat);
             tbHigh.Text = "H: " + d.High.ToString(DecimalFormat);
@@ -996,7 +1102,7 @@ namespace ZpmPriceCharts
                 {
                     if (ChartStudies[x].Study.IsLoaded && idx + Cset.StartTimeIndex < ChartStudies[x].Study.Length)
                     {
-                        HeadingStudyTb[sx].Text = StudyDescription[sx] + ChartStudies[sx].Study.DisplayValue(idx + Cset.StartTimeIndex);
+                        HeadingStudyTb[sx].Text = StudyDescription[sx] + ChartStudies[x].Study.DisplayValue(idx + Cset.StartTimeIndex);
                         sx++;
                     }
 
@@ -1031,7 +1137,7 @@ namespace ZpmPriceCharts
                 Price = TopPrice - Math.Round(position.Y / PriceFactor, Decimals),
                 Date = Candles[idx].DateTime,
                 PricesIdx = idx,
-                ChartCandleIdx = idx-StartCandle
+                ChartCandleIdx = idx - StartCandle
             };
         }
 
@@ -1070,7 +1176,7 @@ namespace ZpmPriceCharts
         {
             if (Candles == null)
                 return;
-            
+
             MouseX.X1 = MouseX.X2 = 0;
             MouseX.Y2 = 0;
             MouseY.Y1 = MouseY.Y2 = 0;

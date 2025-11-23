@@ -10,11 +10,12 @@ namespace ZpmPriceCharts
     public class CandleSet
     {
 
-        public CandleSet() { 
+        public CandleSet()
+        {
         }
 
         public CandleSet(string symbol, string description, int decimals, FrequencyTypes frequencyType,
-                         bool extendedHours, int prependCandles, DateTime loadTime, List<Candle> candles) 
+                         bool extendedHours, int prependCandles, DateTime loadTime, List<Candle> candles)
         {
             Symbol = symbol;
             Description = description;
@@ -28,6 +29,11 @@ namespace ZpmPriceCharts
             }
             Candles = candles;
             LoadTime = loadTime;
+        }
+
+        public override string ToString()
+        {
+            return $"{Symbol} {FrequencyType.FrequencyTypeId}  {StartTime} - {EndTime}  Candles:{Candles.Count}";
         }
 
         public string Symbol { get; set; }
@@ -52,6 +58,8 @@ namespace ZpmPriceCharts
         {
             Zero = 0,
             Minute1 = 1,
+            Minute2 = 2,
+            Minute3 = 3,
             Minute5 = 5,
             Minute15 = 15,
             Minute30 = 30,
@@ -64,7 +72,20 @@ namespace ZpmPriceCharts
             Week = 7000,
             Month = 30000
         }
-        
+
+        /// <summary>
+        /// Convert int to FrequencyType
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static FrequencyTypes ToFrequencyType(int value)
+        {
+            if (!Enum.IsDefined(typeof(CandleSet.FrequencyTypes), value))
+                throw new Exception($"FrequencyType {value} not defined");
+            return (FrequencyTypes)value;
+        }
+
         /// <summary>
         /// Index of requested start date
         /// </summary>
@@ -90,6 +111,8 @@ namespace ZpmPriceCharts
                     case FrequencyTypes.Minute30: return new FrequencyType30Min();
                     case FrequencyTypes.Minute15: return new FrequencyType15Min();
                     case FrequencyTypes.Minute5: return new FrequencyType5Min();
+                    case FrequencyTypes.Minute3: return new FrequencyType3Min();
+                    case FrequencyTypes.Minute2: return new FrequencyType2Min();
                     case FrequencyTypes.Minute1: return new FrequencyType1Min();
                     default: throw new Exception("CandleSet must set FrequencyType");
                 }
@@ -276,6 +299,27 @@ namespace ZpmPriceCharts
                 return date.ToString("MM/dd/yyyy hh:mmt").ToLower();
             }
         }
+
+        // ====================================================================
+        public class FrequencyType2Min : FrequencyType1Min
+        {
+            public FrequencyType2Min()
+            {
+                FrequencyTypeId = FrequencyTypes.Minute2;
+            }
+
+        }
+
+        // ====================================================================
+        public class FrequencyType3Min : FrequencyType1Min
+        {
+            public FrequencyType3Min()
+            {
+                FrequencyTypeId = FrequencyTypes.Minute3;
+            }
+
+        }
+
         // ====================================================================
         public class FrequencyTypeWeek : FrequencyTypeClass
         {

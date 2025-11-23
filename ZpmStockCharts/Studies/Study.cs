@@ -35,7 +35,7 @@ namespace ZpmPriceCharts.Studies
         {
             get
             {
-                return Values[index]; // if prependPrices are used, IdxOffset is the number of prepend prices
+                return Values == null ? 0 : Values[index]; // if prependPrices are used, IdxOffset is the number of prepend prices
             }
         }
         
@@ -47,6 +47,12 @@ namespace ZpmPriceCharts.Studies
         }
 
         public abstract void Calculate(ZpmPriceCharts.CandleSet candleSet);
+
+        /// <summary>
+        /// Used to calculate the last 2 values of the study, for example, to update a chart with the latest candles.
+        /// </summary>
+        /// <param name="candleSet"></param>
+        public abstract void CalculateLast2(CandleSet candleSet);
 
         public virtual void Draw(ZpmPriceCharts.PriceChart chart)
         {
@@ -93,6 +99,50 @@ namespace ZpmPriceCharts.Studies
             for (int i = 1; i < val.Length; i++) y[i] = ema * val[i] + (1 - ema) * y[i - 1];
 
             return y;
+        }
+
+        /// <summary>
+        /// Resize array and initialize new elements to zero
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="newlength"></param>
+        public static void Array_Resize(ref double[] array, int newLength)
+        {
+            int oldLength = array.Length;
+            Array.Resize(ref array, newLength);
+            for (int i = oldLength; i < newLength; i++)
+                array[i] = 0;
+        }
+
+        /// <summary>
+        /// Resize arrays and initialize new elements to zero
+        /// The two arrays must be the same length
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="newlength"></param>
+        public static void Array_Resize(ref double[] array1, ref double[] array2, int newLength)
+        {
+            int oldLength = array1.Length;
+            Array.Resize(ref array1, newLength);
+            Array.Resize(ref array2, newLength);
+            for (int i = oldLength; i < newLength; i++)
+                array1[i] = array2[i] = 0;
+        }
+
+        /// <summary>
+        /// Resize arrays and initialize new elements to zero
+        /// The three arrays must be the same length
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="newlength"></param>
+        public static void Array_Resize(ref double[] array1, ref double[] array2, ref double[] array3, int newLength)
+        {
+            int oldLength = array1.Length;
+            Array.Resize(ref array1, newLength);
+            Array.Resize(ref array2, newLength);
+            Array.Resize(ref array3, newLength);
+            for (int i = oldLength; i < newLength; i++)
+                array1[i] = array2[i] = array3[i] = 0;
         }
     }
 }

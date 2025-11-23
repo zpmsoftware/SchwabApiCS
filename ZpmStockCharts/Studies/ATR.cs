@@ -87,7 +87,7 @@ namespace ZpmPriceCharts.Studies
             }
         }
 
-        public void CalculateLast2(CandleSet cs)
+        public override void CalculateLast2(CandleSet cs)
         {
             if (Periods != PeriodsLastCalculated || Values == null)
             {
@@ -100,11 +100,7 @@ namespace ZpmPriceCharts.Studies
             {
                 if (Values.Length != pb.Count)
                 {
-                    Array.Resize(ref Values, pb.Count);
-                }
-                for (int x = 0; x < pb.Count; x++)
-                {
-                    Values[x] = 0;
+                    Array_Resize(ref Values, pb.Count);
                 }
                 TimeLastCalculated = DateTime.Now;
                 return;
@@ -116,7 +112,7 @@ namespace ZpmPriceCharts.Studies
             // Ensure Values array is sized correctly
             if (Values.Length != pb.Count)
             {
-                Array.Resize(ref Values, pb.Count);
+                Array_Resize(ref Values, pb.Count);
             }
 
             // Update true range and ATR for the last two candles

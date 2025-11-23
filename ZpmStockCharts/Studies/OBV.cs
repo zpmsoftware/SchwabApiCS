@@ -50,14 +50,19 @@ namespace ZpmPriceCharts.Studies
 
             for (int x = 1; x < candles.Count; x++)
             {
-                if (candles[x].Close > candles[x-1].Close)
-                    values[x] = values[x-1] + candles[x].Volume;
-                else if (candles[x].Close < candles[x-1].Close)
+                if (candles[x].Close > candles[x - 1].Close)
+                    values[x] = values[x - 1] + candles[x].Volume;
+                else if (candles[x].Close < candles[x - 1].Close)
                     values[x] = values[x - 1] - candles[x].Volume;
                 else
                     values[x] = values[x - 1];
             }
             return values;
+        }
+
+        public override void CalculateLast2(CandleSet candleSet_)
+        {
+            throw new NotImplementedException("OBV does not support CalculateLast2.");
         }
 
         public override void Draw(PriceChart chart)
@@ -69,7 +74,7 @@ namespace ZpmPriceCharts.Studies
             double offset = chart.CalcTop(candles[startCandle].Close);
             UiElements.Clear();
 
-            for (int x = 1; x+ startCandle < Values.Length && x < chart.NbrCandles; x++)
+            for (int x = 1; x + startCandle < Values.Length && x < chart.NbrCandles; x++)
             {
                 var ln = chart.ChartLine(Color);
                 ln.X1 = x1;

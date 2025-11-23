@@ -150,7 +150,7 @@ namespace SchwabApiCS
                     return $"{reference.product} - ({symbol}) {assetMainType} {reference.description}, Mark ${quote.mark}";
 
                 return $"{symbol} - {assetMainType} {reference.description}, Mark ${quote.mark}";
-             }
+            }
 
             public string assetMainType { get; set; }
             public string assetSubType { get; set; }
@@ -404,7 +404,7 @@ namespace SchwabApiCS
         public PriceHistory GetPriceHistory(string symbol, PeriodType periodType, int period, FrequencyType frequencyType, int frequency,
                                             DateTime? startDate, DateTime? endDate, bool needExtendedHoursData, bool needPreviousClose = false)
         {
-            return WaitForCompletion(GetPriceHistoryAsync(symbol,periodType, period, frequencyType, frequency, startDate, endDate, needExtendedHoursData, needPreviousClose));
+            return WaitForCompletion(GetPriceHistoryAsync(symbol, periodType, period, frequencyType, frequency, startDate, endDate, needExtendedHoursData, needPreviousClose));
         }
 
         /// <summary>
@@ -433,15 +433,28 @@ namespace SchwabApiCS
                 url += "&endDate=" + SchwabApi.DateTime_to_ApiDateTime((DateTime)endDate).ToString();
 
             var result = await Get<PriceHistory>(MarketDataBaseUrl + url);
-            if (!result.HasError && result.Data.candles.Count>0)
+
+            if (result.HasError)
+                return result;
+
+            if (result.Data.candles.Count > 0)
             {
+                var candles = result.Data.candles;
+                var c = candles.Last();
+                if (c.open == 0 && c.close == 0)
+                {
+                    candles.RemoveAt(candles.Count - 1); // empty candle returned sometimes at end for a new day
+                    if (candles.Count == 0)
+                        return result;
+                }
+
                 switch (frequencyType)
                 {
                     case FrequencyType.daily: // check for last candle with 23 hour
-                        var c = result.Data.candles.LastOrDefault();
+                        c = candles.LastOrDefault();
                         if (c.dateTime.Hour == 23)
                             c.dateTime = c.dateTime.AddHours(1);
-                        foreach (var cc in result.Data.candles) // fix for day candles with a time component
+                        foreach (var cc in candles) // fix for day candles with a time component
                         {
                             if (cc.dateTime.Hour == 1)
                                 cc.dateTime = cc.dateTime.AddHours(-1);
@@ -450,14 +463,13 @@ namespace SchwabApiCS
 
                     case FrequencyType.minute: // check for duplicates, sometimes on current day (at night? 1am)
                         // on prior days it returns more than requested, filter those out.
-                        if (result.Data.candles.Count > 1)
+                        if (candles.Count > 1)
                         {
-                            var candles = result.Data.candles
-                                                .Where(r=> (startDate == null || r.dateTime >= startDate) && (endDate == null || r.dateTime <= endDate)) 
-                                                .OrderBy(r => r.dateTime).ToList();
-                            for (var x = candles.Count-1; x > 0; x--)
+                            candles = candles.Where(r => (startDate == null || r.dateTime >= startDate) && (endDate == null || r.dateTime <= endDate))
+                                             .OrderBy(r => r.dateTime).ToList();
+                            for (var x = candles.Count - 1; x > 0; x--)
                             {
-                                if (candles[x-1].dateTime == candles[x].dateTime)
+                                if (candles[x - 1].dateTime == candles[x].dateTime)
                                     candles.RemoveAt(x);
                             }
 
@@ -550,7 +562,7 @@ namespace SchwabApiCS
             /// <returns></returns>
             public List<Candle> WeeklyCandles()
             {
-                var weeklyCcandles = candles.GroupBy(r => r.dateTime.AddDays(1 - (int)r.dateTime.DayOfWeek) ) // change date to Monday date of week
+                var weeklyCcandles = candles.GroupBy(r => r.dateTime.AddDays(1 - (int)r.dateTime.DayOfWeek)) // change date to Monday date of week
                                 .Select(r => new Candle()
                                 {
                                     datetime = SchwabApi.DateTime_to_ApiDateTime(r.Key),
@@ -669,7 +681,7 @@ namespace SchwabApiCS
         public enum MoversFrequency { F0, F1, F5, F10, F30, F60 };
         private static string ToString(Indexes index)
         {
-            switch(index)
+            switch (index)
             {
                 // DJI$, $COMPX, $SPX
                 case Indexes.DJI:
@@ -719,7 +731,7 @@ namespace SchwabApiCS
             {
                 public override string ToString()
                 {
-                    return string.Format("{0} - {1},  V: {2},  Last: {3},  NetChg: {4}", 
+                    return string.Format("{0} - {1},  V: {2},  Last: {3},  NetChg: {4}",
                                          symbol, description, volume, lastPrice.ToString("C2"), netChange.ToString("C2"));
                 }
 

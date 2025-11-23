@@ -21,7 +21,7 @@ namespace SchwabApiCS
         /// <summary>
         /// empty order
         /// </summary>
-        public Order() 
+        public Order()
         {
             orderLegFillDetails = new OrderLegFillDetails(this);
         }
@@ -89,7 +89,8 @@ namespace SchwabApiCS
 
         public override string ToString()
         {
-            if (orderStrategyType == OrderStrategyTypes.OCO.ToString()) {
+            if (orderStrategyType == OrderStrategyTypes.OCO.ToString())
+            {
                 var oco = string.Format("{0} {1} {2} {3} {4} {5}",
                     accountNumber, orderStrategyType, orderType,
                     enteredTime == null ? "" : ((DateTime)enteredTime).ToString("yyyy-MM-dd hh:mm:ss tt,"),
@@ -152,6 +153,35 @@ namespace SchwabApiCS
             return SchwabApi.GetEnum<SchwabApiCS.Order.OrderStrategyTypes>(orderStrategyType);
         }
 
+        public FillDetails? GetOrderFillDetails()
+        {
+            FillDetails? fillDetails = null;
+            for (var x = 0; x < orderLegCollection.Count; x++)
+            {
+                if (fillDetails == null)
+                    fillDetails = orderLegFillDetails[x];
+                else
+                { // merge fill details
+                    var fd = orderLegFillDetails[x];
+                    fillDetails.Quantity += fd.Quantity;
+                    fillDetails.Amount += fd.Amount;
+                    if (fd.FirstTime != null)
+                    {
+                        if (fillDetails.FirstTime == null || fillDetails.FirstTime > fd.FirstTime)
+                            fillDetails.FirstTime = fd.FirstTime;
+                    }
+                    if (fd.LastTime != null)
+                    {
+                        if (fillDetails.LastTime == null || fillDetails.LastTime < fd.LastTime)
+                            fillDetails.LastTime = fd.LastTime;
+                    }
+                }
+            }
+            if (fillDetails != null)
+                fillDetails.AveragePrice = fillDetails.Quantity == 0 ? 0 : Math.Round(fillDetails.Amount / fillDetails.Quantity, 4);
+            return fillDetails;
+        }
+
         public class OrderLegFillDetails
         {
             private Order order;
@@ -206,7 +236,7 @@ namespace SchwabApiCS
                                         if (eLeg.time != null)
                                         {
                                             if (firstTime == null || firstTime < eLeg.time)
-                                                firstTime =  eLeg.time;
+                                                firstTime = eLeg.time;
                                             if (lastTime == null || lastTime < eLeg.time)
                                                 lastTime = eLeg.time;
                                         }
@@ -226,24 +256,24 @@ namespace SchwabApiCS
                     };
                 }
             }
+        }
 
-            public class FillDetails
+        public class FillDetails
+        {
+            public decimal Quantity { get; set; }
+            public decimal AveragePrice { get; set; }
+
+            /// <summary>
+            /// Amount of transaction (cost or proceeds)
+            /// </summary>
+            public decimal Amount { get; set; }
+
+            public DateTime? FirstTime { get; set; }
+            public DateTime? LastTime { get; set; }
+
+            public override string ToString()
             {
-                public decimal Quantity { get; set; }
-                public decimal AveragePrice { get; set; }
-
-                /// <summary>
-                /// Amount of transaction (cost or proceeds)
-                /// </summary>
-                public decimal Amount { get; set; }
-
-                public DateTime? FirstTime { get; set; }
-                public DateTime? LastTime { get; set; }
-
-                public override string ToString()
-                {
-                    return $"Quantity={Quantity}, AveragePrice={AveragePrice}, Amount={Amount}";
-                }
+                return $"Quantity={Quantity}, AveragePrice={AveragePrice}, Amount={Amount}";
             }
         }
 
@@ -294,7 +324,7 @@ namespace SchwabApiCS
         {
             AWAITING_PARENT_ORDER, AWAITING_CONDITION, AWAITING_STOP_CONDITION, AWAITING_MANUAL_REVIEW,
             ACCEPTED, AWAITING_UR_OUT, PENDING_ACTIVATION, QUEUED, WORKING, REJECTED, PENDING_CANCEL,
-            CANCELED, PENDING_REPLACE, REPLACED,FILLED, EXPIRED, NEW, AWAITING_RELEASE_TIME,
+            CANCELED, PENDING_REPLACE, REPLACED, FILLED, EXPIRED, NEW, AWAITING_RELEASE_TIME,
             PENDING_ACKNOWLEDGEMENT, PENDING_RECALL, UNKNOWN
         };
         public enum AmountIndicator { DOLLARS, SHARES, ALL_SHARES, PERCENTAGE, UNKNOWN };
@@ -553,7 +583,7 @@ namespace SchwabApiCS
             [Obsolete("This OrderLeg constructor is deprecated. It assumes buy/sell based on quantity, which doesn't support shorting or selling optons.")]
             public OrderLeg(string symbol, AssetType assetType, decimal quantity)
             {
-                CalculateInstruction(assetType, quantity > 0 ? Position.TO_OPEN : Position.TO_CLOSE , quantity);
+                CalculateInstruction(assetType, quantity > 0 ? Position.TO_OPEN : Position.TO_CLOSE, quantity);
                 this.quantity = Math.Abs(quantity);
                 this.instrument = new Order.Instrument() { symbol = symbol, assetType = assetType.ToString() };
             }

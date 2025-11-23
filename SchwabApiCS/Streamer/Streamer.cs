@@ -101,7 +101,7 @@ namespace SchwabApiCS
             // handle received messages
             websocket.MessageReceived += (socket, messageEvent) =>
             {
-                // SchwabApi.LogMessage(messageEvent.Message); // for debugging
+                // SchwabApi.LogMessage(messageEvent.Message, false); // for debugging
 
                 _syncContext.Post(state =>
                 {
@@ -229,6 +229,8 @@ namespace SchwabApiCS
         {
             if (websocket.State == WebSocket4Net.WebSocketState.Closed)
             {
+                if (jsonRequest.Contains("\"LOGOUT\""))
+                    return; // already closed
                 isLoggedIn = false;
                 websocket.Open();
             }

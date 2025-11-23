@@ -109,7 +109,7 @@ namespace ZpmPriceCharts.Studies
             return values;
         }
 
-        public void CalculateLast2(CandleSet candleSet_)
+        public override void CalculateLast2(CandleSet candleSet_)
         {
             List<Candle> candles;
             if (candleSet_.HeikinAshiCandles != null)
@@ -134,11 +134,7 @@ namespace ZpmPriceCharts.Studies
             {
                 if (Values.Length != candles.Count)
                 {
-                    Array.Resize(ref Values, candles.Count);
-                }
-                for (int i = 0; i < candles.Count; i++)
-                {
-                    Values[i] = 0;
+                    Array_Resize(ref Values, candles.Count);
                 }
                 TimeLastCalculated = DateTime.Now;
                 candlesLastUsed = candles;
@@ -148,7 +144,7 @@ namespace ZpmPriceCharts.Studies
             // Resize Values array if candle count changed
             if (Values.Length != candles.Count)
             {
-                Array.Resize(ref Values, candles.Count);
+                Array_Resize(ref Values, candles.Count);
             }
 
             // Calculate SMA for the last two candles

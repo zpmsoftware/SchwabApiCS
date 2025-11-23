@@ -168,7 +168,7 @@ namespace ZpmPriceCharts.Studies
 
         }
 
-        public void CalculateLast2(CandleSet candleSet_)
+        public override void CalculateLast2(CandleSet candleSet_)
         {
             List<Candle> candles;
             if (candleSet_.HeikinAshiCandles != null)
@@ -189,16 +189,10 @@ namespace ZpmPriceCharts.Studies
             {
                 if (Values.Length != candles.Count)
                 {
-                    Array.Resize(ref Values, candles.Count);
-                    Array.Resize(ref DIPlus, candles.Count);
-                    Array.Resize(ref DIMinus, candles.Count);
-                    Array.Resize(ref plusDM, candles.Count);
-                    Array.Resize(ref minusDM, candles.Count);
-                    Array.Resize(ref tr, candles.Count);
-                    Array.Resize(ref smoothedPlusDM, candles.Count);
-                    Array.Resize(ref smoothedMinusDM, candles.Count);
-                    Array.Resize(ref smoothedTR, candles.Count);
-                    Array.Resize(ref dx, candles.Count);
+                    Array_Resize(ref Values, ref DIPlus, ref DIMinus, candles.Count);
+                    Array_Resize(ref plusDM, ref minusDM, ref tr, candles.Count);
+                    Array_Resize(ref smoothedPlusDM, ref smoothedMinusDM, ref smoothedTR, candles.Count);
+                    Array_Resize(ref dx, candles.Count);
                 }
                 for (int i = 0; i < candles.Count; i++)
                 {
@@ -215,16 +209,10 @@ namespace ZpmPriceCharts.Studies
 
             if (Values.Length != candles.Count)
             {
-                Array.Resize(ref Values, candles.Count);
-                Array.Resize(ref DIPlus, candles.Count);
-                Array.Resize(ref DIMinus, candles.Count);
-                Array.Resize(ref plusDM, candles.Count);
-                Array.Resize(ref minusDM, candles.Count);
-                Array.Resize(ref tr, candles.Count);
-                Array.Resize(ref smoothedPlusDM, candles.Count);
-                Array.Resize(ref smoothedMinusDM, candles.Count);
-                Array.Resize(ref smoothedTR, candles.Count);
-                Array.Resize(ref dx, candles.Count);
+                Array_Resize(ref Values, ref DIPlus, ref DIMinus, candles.Count);
+                Array_Resize(ref plusDM, ref minusDM, ref tr, candles.Count);
+                Array_Resize(ref smoothedPlusDM, ref smoothedMinusDM, ref smoothedTR, candles.Count);
+                Array_Resize(ref dx, candles.Count);
             }
 
             // Calculate DM and TR for the last two candles
