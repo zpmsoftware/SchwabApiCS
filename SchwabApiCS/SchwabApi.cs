@@ -3,6 +3,8 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+// Version 7.5.1 - released 2026-01-15, removed tokenDataFileName used for testing.
+
 /* Version 7.5.0 - released 2025-11-23
     1. Changed target framework to .Net 10 (Visual Studio 2026 recommended)
     2. SchwabApiCS.Orders.Order.GetOrderFillDetails() - new method
@@ -71,7 +73,7 @@ namespace SchwabApiCS
     public partial class SchwabApi
     {
 
-        public const string Version = "7.4.7";
+        public const string Version = "7.5.1";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
