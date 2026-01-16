@@ -410,6 +410,7 @@ namespace SchwabApiTest
 
                 var quotes = schwabApi.GetQuotes("IWM,SPY,USO,InvalidSymbol,MU    240809P00121000,/ES,USD/JPY", true);
 
+
                 // uncomment lines below for more testing  ===========================================
                 /*
                 var quotes = schwabApi.GetQuotes("IWM,SPY,USO", true, "quote");
