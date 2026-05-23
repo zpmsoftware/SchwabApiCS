@@ -103,12 +103,12 @@ namespace SchwabApiCS
                 }
                 return oco;
             }
-            return string.Format("{0} {1} {2} {3} {4} {5} Qty: {6}, {7} {8}",
-                accountNumber, orderStrategyType, orderType, orderLegCollection[0].instrument.symbol, orderLegCollection[0].instruction,
-                orderType, orderLegCollection[0].quantity.ToString("#.##"),
-                enteredTime == null ? "" : ((DateTime)enteredTime).ToString("yyyy-MM-dd hh:mm:ss tt,"),
-                status
-                );
+            return string.Format("{0} {1} {2} {3} {4} Qty: {5} {6}, {7} {8}",
+                       accountNumber, orderStrategyType, orderType, orderLegCollection[0].instrument.symbol, orderLegCollection[0].instruction,
+                       orderLegCollection[0].quantity.ToString("#.##"),
+                       enteredTime == null ? "" : ((DateTime)enteredTime).ToString("yyyy-MM-dd hh:mm:ss tt,"),
+                       status, orderId
+                       );
         }
 
         public string JsonSerialize()

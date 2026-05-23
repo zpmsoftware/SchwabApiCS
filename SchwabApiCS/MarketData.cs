@@ -210,6 +210,7 @@ namespace SchwabApiCS
                 public DateTime nextDivExDate { get; set; }
                 public DateTime nextDivPayDate { get; set; }
                 public decimal peRatio { get; set; }
+                public long sharesOutstanding { get; set; }
             }
 
             public class QuotePrice
@@ -346,6 +347,7 @@ namespace SchwabApiCS
                 public string? futureTradingHours { get; set; }
                 public string? product { get; set; }
                 public bool? isTradable { get; set; }
+                public bool optionable { get; set; }
 
 
                 private DateTime? _futureExpirationDate = null;

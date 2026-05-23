@@ -35,6 +35,10 @@ namespace SchwabApiCS
                 public bool autoPositionEffect { get; set; }
                 public string accountColor { get; set; }
 
+                public string lotSelectionMethod { get; set; }
+                public bool hasFuturesAccount { get; set; }
+                public bool hasForexAccount { get; set; }
+
                 public override string ToString()
                 {
                     return accountNumber + " " + nickName + " " + type;

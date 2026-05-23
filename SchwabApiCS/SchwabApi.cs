@@ -3,6 +3,19 @@
 // This Source Code is subject to the terms MIT Public License
 // </copyright>
 
+/* Version 7.6.0 - released 2026-05-23
+ New data fields:
+	MarketData.cs - Quote > Fundamental - public long sharesOutstanding { get; set; }
+	MarketData.cs - Quote > Reference - public bool optionable { get; set; }
+	UserPreferences.cs - UserPreferences > Account - public string lotSelectionMethod { get; set; }
+	UserPreferences.cs - UserPreferences > Account - public bool hasFuturesAccount { get; set; }
+	UserPreferences.cs - UserPreferences > Account - public bool hasForexAccount { get; set; }
+	
+ New feature:
+    Order Count Tracking - Track daily orders to stay within Schwab's 4,000 order limit.
+    See SchwabApiCS\Documentation\OrderCountTracking-QuickRef.md and SchwabApiCS\Documentation\OrderCountTracking.md
+*/
+
 // Version 7.5.1 - released 2026-01-15, removed tokenDataFileName used for testing.
 
 /* Version 7.5.0 - released 2025-11-23
@@ -73,7 +86,7 @@ namespace SchwabApiCS
     public partial class SchwabApi
     {
 
-        public const string Version = "7.5.1";
+        public const string Version = "7.6.0";
 
         /* ============= Accounts and Trading Production ===============================================================
          *   Method                     Endpoint                                     Description
@@ -170,6 +183,33 @@ namespace SchwabApiCS
         /// <param name="callerName">if null, gets name from stack frame.</param>
         public delegate void ExternalLoggingMethod(string message, bool displayMessage, string? callerName = null);
         public static ExternalLoggingMethod? LoggingMethod = null; // set to your method to log messages
+
+        /// <summary>
+        /// Delegate for notifying consuming applications when the daily order count changes.
+        /// Use this callback to update UI displays, check order limits, or trigger alerts.
+        /// </summary>
+        /// <param name="ordersCount">The new count of orders sent today.</param>
+        /// <param name="lastOrderCountTime">The timestamp of the most recent order.</param>
+        /// <example>
+        /// <code>
+        /// SchwabApi.OnOrderCountChanged = (count, timestamp) =>
+        /// {
+        ///     Console.WriteLine($"Order count: {count}");
+        ///     if (count >= 3900)
+        ///     {
+        ///         DisableTrading();
+        ///     }
+        /// };
+        /// </code>
+        /// </example>
+        public delegate void OrderCountChangedCallback(int ordersCount, DateTime lastOrderCountTime);
+
+        /// <summary>
+        /// Callback invoked whenever an order is executed and the order count changes.
+        /// Register your callback to receive notifications for UI updates or order limit monitoring.
+        /// Set to null by default - assign your callback method during application initialization.
+        /// </summary>
+        public static OrderCountChangedCallback? OnOrderCountChanged = null;
 
         internal static SchwabTokens schwabTokens;
         internal IList<AccountNumber> accountNumberHashs; // load once

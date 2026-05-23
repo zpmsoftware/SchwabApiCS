@@ -22,6 +22,9 @@ namespace SchwabApiCS
         /// </summary>
         public static string LastOrderJson;
 
+        public static int OrdersCount = 0; // count how many orders have been sent to stay within Schwab limit of 4000.
+        public static DateTime LastOrderCountTime = DateTime.Now;
+
 
         // =========== OrderExecuteNew for new orders ========================================================================
         // use this method to create your own complex orders.
@@ -47,6 +50,8 @@ namespace SchwabApiCS
         /// <returns>SchwabOrderID or null</returns>
         public async Task<ApiResponseWrapper<long?>> OrderExecuteNewAsync(string accountNumber, Order order)
         {
+            IncrementOrderCount();
+
             if (order.orderLegCollection != null)
             {
                 foreach (var o in order.orderLegCollection)
@@ -87,6 +92,23 @@ namespace SchwabApiCS
             return price;
         }
 
+        /// <summary>
+        /// Increments the order count and resets it daily.
+        /// Tracks how many orders have been sent to stay within Schwab limit of 4000.
+        /// </summary>
+        private static void IncrementOrderCount()
+        {
+            // Reset count if day has changed
+            if (LastOrderCountTime.Date != DateTime.Today)
+            {
+                OrdersCount = 0;
+            }
+            OrdersCount++;
+            LastOrderCountTime = DateTime.Now;
+
+            // Notify external code of the count change
+            SchwabApi.OnOrderCountChanged?.Invoke(OrdersCount, LastOrderCountTime);
+        }
 
         // ================ OrderExecuteReplace - Replace Order =================================================
 
@@ -109,6 +131,8 @@ namespace SchwabApiCS
         /// <returns></returns>
         public async Task<ApiResponseWrapper<long?>> OrderExecuteReplaceAsync(string accountNumber, Order order)
         {
+            IncrementOrderCount();
+
             // only tested for replacing a simple stop market order, more complex orders will need work.
             var newOrder = new Order()
             {
@@ -154,6 +178,7 @@ namespace SchwabApiCS
         /// <returns></returns>
         public async Task<ApiResponseWrapper<bool>> OrderExecuteDeleteAsync(string accountNumber, Order order)
         {
+            IncrementOrderCount();
             return await Delete(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders/" + order.orderId);
         }
 
@@ -170,6 +195,7 @@ namespace SchwabApiCS
         /// <returns></returns>
         public async Task<ApiResponseWrapper<bool>> OrderExecuteDeleteAsync(string accountNumber, long orderId)
         {
+            IncrementOrderCount();
             return await Delete(OrdersBaseUrl + "/accounts/" + GetAccountNumberHash(accountNumber) + "/orders/" + orderId.ToString());
         }
 

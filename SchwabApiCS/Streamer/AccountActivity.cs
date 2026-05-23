@@ -95,8 +95,7 @@ namespace SchwabApiCS
                             }
                         }
                         else if (aa.activity != "SUBSCRIBED") // skip subscribed
-                        {
-                            var xx = 1;  // use to break on new type
+                        {  // use to break on new type
                         }
                     }
 
@@ -104,8 +103,7 @@ namespace SchwabApiCS
                     { // check for duplicates
                         var Data2 = Data.DistinctBy(r => new { r.accountNumber, r.activity, r.data }).ToList();
                         if (Data2.Count != Data.Count)
-                        {
-                            var xx = 1;  // use as a breakpoint when duplicates encountered.  Doesn't always happen
+                        { // use as a breakpoint when duplicates encountered.  Doesn't always happen
                         }
                         Callback(Data2);
                     }
@@ -127,9 +125,9 @@ namespace SchwabApiCS
         {
             public override string ToString()
             {
-                return string.Format("{0} {1} {2} {3}", seq, accountNumber, activity, activityObject == null ? "" : activityObject.SchwabOrderID);
-
+                return string.Format("AccountActivity: {0} {1} {2} {3}", seq, accountNumber, activity, activityObject == null ? "" : activityObject.SchwabOrderID);
             }
+
             public int seq { get; set; } = 0;
             public string key { get; set; }  // "Account Activity"
 
