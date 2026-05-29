@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32014.148
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.11822.327 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiCS", "SchwabApiCS\SchwabApiCS.csproj", "{DAAA77C1-70EE-4E8C-9DA3-3328EA3E8C99}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SchwabApiAuthorize", "SchwabApiAuthorize\SchwabApiAuthorize.csproj", "{9560B8E5-E54C-4486-8691-C4FDBD006BEA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZpmPriceCharts", "ZpmStockCharts\ZpmPriceCharts.csproj", "{DCC89F73-0F18-4EA4-BD0D-D419760B218B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchwabApiCS_Avalonia", "SchwabApiCS_Avalonia\SchwabApiCS_Avalonia.csproj", "{1B10D683-AD8F-4E52-9DF6-A0C953C6286D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{DCC89F73-0F18-4EA4-BD0D-D419760B218B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DCC89F73-0F18-4EA4-BD0D-D419760B218B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DCC89F73-0F18-4EA4-BD0D-D419760B218B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B10D683-AD8F-4E52-9DF6-A0C953C6286D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B10D683-AD8F-4E52-9DF6-A0C953C6286D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B10D683-AD8F-4E52-9DF6-A0C953C6286D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B10D683-AD8F-4E52-9DF6-A0C953C6286D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
