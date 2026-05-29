@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+       xmlns:local="clr-namespace:SchwabApiCS_Avalonia"
+       xmlns:wv="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.WebView"
+       x:Class="SchwabApiCS_Avalonia.MainWindow"
+       x:DataType="local:MainViewModel"
+       Title="Schwab API Authorize">
+<Window.DataContext>
+<local:MainViewModel />
+</Window.DataContext>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="180"/>
+			<ColumnDefinition Width="*"/>
+		</Grid.ColumnDefinitions>
+		<StackPanel>
+			<StackPanel>
+				<Label>Public Key</Label>
+				<TextBox Text="{Binding PublicApiKey}" PasswordChar="*" />
+			</StackPanel>
+			<StackPanel>
+				<Label>Private Key</Label>
+				<TextBox Text="{Binding PrivateApiKey}" PasswordChar="*" />
+			</StackPanel>
+			<StackPanel>
+				<Label>Redirect URL</Label>
+				<TextBox Text="{Binding RedirectUrl}" />
+			</StackPanel>
+			<Button Content="Update" Command="{Binding UpdateSchwabTokensCommand}" />
+			<CheckBox Content="Valid Authenticatation" IsHitTestVisible="False" IsChecked="{Binding IsAuthenticated}" />
+			<TextBox Text="{Binding AuthExpiration}" IsReadOnly="True" />
+			<Button Content="Show Tokens File" Command="{Binding ShowTokensFileCommand}" />
+		</StackPanel>
+		<ScrollViewer Grid.Column="1">
+			<DockPanel>
+				<StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+					<TextBox MinWidth="368" Text="{Binding AuthorizeUri}" />
+					<Button Content="Refresh" Command="{Binding RefreshPageCommand}" />
+				</StackPanel>
+				<wv:NativeWebView x:Name="webview" Focusable="True" MinWidth="480" MinHeight="480"
+								  NavigationCompleted="WebView_NavigationCompleted" />
+			</DockPanel>
+		</ScrollViewer>
+	</Grid>
+</Window>
